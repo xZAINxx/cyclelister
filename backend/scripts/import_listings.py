@@ -4,7 +4,7 @@ Usage:
     python scripts/import_listings.py export.csv
 
 Expected CSV columns (header row required; extra columns ignored):
-    part_number, brand, part_type, title, description, category_id, fitment
+    part_number, brand, part_type, title, description, category_id, fitment, notes
 
 `fitment` cell format: semicolon-separated entries "Make|Model|year_start|year_end",
 years optional, e.g. "Yamaha|XS650|1978|1984;Honda|CB750||".
@@ -67,6 +67,7 @@ async def import_csv(path: str) -> tuple[int, int]:
                 part.title_template = (row.get("title") or "").strip()[:120] or part.title_template
                 part.description_template = (row.get("description") or "").strip() or part.description_template
                 part.default_category_id = (row.get("category_id") or "").strip() or part.default_category_id
+                part.notes = (row.get("notes") or "").strip() or part.notes
 
                 existing = await part.awaitable_attrs.fitment
                 catalog.merge_fitment(
