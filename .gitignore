@@ -8,3 +8,8 @@ __pycache__/
 venv/
 .venv/
 .DS_Store
+.venv/
+data/
+*.db
+*.egg-info/
+.pytest_cache/

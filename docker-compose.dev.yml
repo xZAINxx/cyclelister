@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cyclelister
+      POSTGRES_PASSWORD: cyclelister
+      POSTGRES_DB: cyclelister
+    ports:
+      - "5533:5432"
+    volumes:
+      - cyclelister-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cyclelister"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  cyclelister-pgdata:
