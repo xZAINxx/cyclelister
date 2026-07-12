@@ -9,7 +9,7 @@ venv/
 .venv/
 .DS_Store
 .venv/
-data/
+data/images/
 *.db
 *.egg-info/
 .pytest_cache/
