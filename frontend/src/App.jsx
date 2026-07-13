@@ -4,6 +4,7 @@ import AppShell from './components/AppShell'
 import SignInGate from './auth/SignInGate'
 import { isSupabaseConfigured, supabase } from './auth/supabaseClient'
 import CaptureScreen from './screens/CaptureScreen'
+import DashboardScreen from './screens/DashboardScreen'
 import DraftsScreen from './screens/DraftsScreen'
 import ReviewScreen from './screens/ReviewScreen'
 
@@ -49,6 +50,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<CaptureScreen />} />
         <Route path="/drafts" element={<DraftsScreen />} />
+        <Route path="/dashboard" element={<DashboardScreen />} />
         <Route path="/review/:id" element={<ReviewScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

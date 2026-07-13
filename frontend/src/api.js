@@ -95,6 +95,7 @@ export const api = {
     apiFetch(`/parts/${partId}/fitment`, { method: 'PUT', body: { fitments } }),
 
   ebayStatus: () => apiFetch('/ebay/status'),
+  analyticsSummary: () => apiFetch('/analytics/summary'),
 }
 
 // The backend serves image binaries directly; build the URL for <img src>.

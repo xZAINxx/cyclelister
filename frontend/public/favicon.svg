@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 512 512" role="img" aria-label="CycleLister">
-  <rect width="512" height="512" rx="96" fill="#0f1115"/>
+  <rect width="512" height="512" rx="96" fill="#0E0E10"/>
   <text x="50%" y="52%" dominant-baseline="central" text-anchor="middle"
     font-family="'Segoe UI', Arial, sans-serif" font-weight="800"
-    font-size="230" fill="#ff6a2b" letter-spacing="-8">CL</text>
+    font-size="230" fill="#FFD400" letter-spacing="-8">CL</text>
 </svg>
