@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CycleLister — Direction 1: Machine Shop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Layered near-black surfaces */
+    --void:#07090a;
+    --bg-0:#0b0d0f;
+    --bg-1:#111417;
+    --bg-2:#161a1e;
+    --bg-3:#1c2126;
+    --line:#252b31;
+    --line-bright:#333b42;
+    /* Ink */
+    --ink-0:#f2f4f5;
+    --ink-1:#aeb6bd;
+    --ink-2:#6f7a82;
+    --ink-3:#4a535a;
+    /* Safety accent — single amber */
+    --amber:#ff8a1e;
+    --amber-hi:#ffb45c;
+    --amber-dim:#c86400;
+    --amber-glow:rgba(255,138,30,.16);
+    /* Functional (used only for status, kept desaturated) */
+    --steel:#5b9dd9;
+    --grn:#3fae7a;
+    --grn-dim:#1c3a2e;
+    --amber-chip:#3a2a12;
+    --steel-chip:#12263a;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --grotesk:'Space Grotesk',system-ui,sans-serif;
+    --tight:'Inter Tight',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--void);
+    font-family:var(--tight);
+    color:var(--ink-0);
+    -webkit-font-smoothing:antialiased;
+    padding:56px 0 80px;
+  }
+  .board{width:1600px;margin:0 auto;padding:0 40px}
+
+  /* ---------- HEADER STRIP ---------- */
+  .masthead{
+    background:
+      linear-gradient(180deg,var(--bg-1),var(--bg-0));
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:34px 40px;
+    display:grid;
+    grid-template-columns:1.05fr 1fr;
+    gap:40px;
+    position:relative;
+    overflow:hidden;
+  }
+  .masthead::before{
+    content:"";position:absolute;inset:0;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:34px 34px;opacity:.14;pointer-events:none;
+  }
+  .masthead>*{position:relative;z-index:1}
+  .kicker{
+    font-family:var(--mono);font-size:11px;letter-spacing:.34em;
+    text-transform:uppercase;color:var(--amber);margin-bottom:16px;
+    display:flex;align-items:center;gap:12px;
+  }
+  .kicker .dot{width:7px;height:7px;background:var(--amber);border-radius:50%;box-shadow:0 0 12px var(--amber)}
+  .dir-name{
+    font-family:var(--grotesk);font-weight:700;font-size:62px;line-height:.94;
+    letter-spacing:-.02em;color:var(--ink-0);
+  }
+  .dir-name em{font-style:normal;color:var(--amber)}
+  .dir-sub{margin-top:16px;font-size:15px;line-height:1.55;color:var(--ink-1);max-width:520px}
+  .dir-sub b{color:var(--ink-0);font-weight:600}
+  .meta-row{display:flex;gap:28px;margin-top:22px}
+  .meta-row .m{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-2);text-transform:uppercase}
+  .meta-row .m b{display:block;font-size:13px;color:var(--ink-0);letter-spacing:.02em;margin-top:5px;text-transform:none;font-family:var(--tight);font-weight:600}
+
+  /* swatches */
+  .swatch-block{align-self:start}
+  .block-label{font-family:var(--mono);font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-2);margin-bottom:14px}
+  .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:26px}
+  .chip{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--bg-2)}
+  .chip .fill{height:52px}
+  .chip .info{padding:8px 10px 9px}
+  .chip .nm{font-size:11px;font-weight:600;color:var(--ink-0);letter-spacing:.01em}
+  .chip .hx{font-family:var(--mono);font-size:10px;color:var(--ink-2);margin-top:2px}
+  /* type specimen */
+  .specimen{border-top:1px solid var(--line);padding-top:20px}
+  .spec-row{display:flex;align-items:baseline;gap:16px;padding:7px 0}
+  .spec-row .tag{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--ink-3);width:120px;flex:none;text-transform:uppercase}
+  .sp-display{font-family:var(--grotesk);font-weight:700;font-size:34px;letter-spacing:-.02em;line-height:1}
+  .sp-head{font-family:var(--grotesk);font-weight:600;font-size:21px;letter-spacing:-.01em}
+  .sp-body{font-family:var(--tight);font-weight:400;font-size:15px;color:var(--ink-1)}
+  .sp-mono{font-family:var(--mono);font-weight:500;font-size:14px;letter-spacing:.02em;color:var(--amber-hi)}
+
+  /* ---------- SECTION LABELS ---------- */
+  .art-label{
+    display:flex;align-items:center;gap:16px;margin:56px 0 20px;
+  }
+  .art-label .idx{font-family:var(--mono);font-size:12px;color:var(--void);background:var(--amber);padding:4px 10px;border-radius:5px;font-weight:600;letter-spacing:.05em}
+  .art-label h2{font-family:var(--grotesk);font-weight:600;font-size:20px;letter-spacing:.01em;color:var(--ink-0)}
+  .art-label .spec{font-family:var(--mono);font-size:11px;color:var(--ink-2);letter-spacing:.08em;margin-left:auto}
+  .art-label .rule{height:1px;background:var(--line);flex:1;max-width:60px}
+
+  /* ---------- DESKTOP ARTBOARD ---------- */
+  .artboard{border:1px solid var(--line-bright);border-radius:16px;overflow:hidden;background:var(--bg-0);box-shadow:0 40px 80px -30px rgba(0,0,0,.8)}
+  .desktop{width:1520px}
+
+  /* top nav */
+  .topnav{
+    height:64px;background:var(--bg-1);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;padding:0 24px;gap:24px;
+  }
+  .wordmark{display:flex;align-items:center;gap:11px}
+  .logo-mark{
+    width:32px;height:32px;border-radius:8px;position:relative;flex:none;
+    background:linear-gradient(145deg,var(--bg-3),var(--bg-1));border:1px solid var(--line-bright);
+    display:grid;place-items:center;
+  }
+  .logo-mark::before{content:"";width:15px;height:15px;border:2.5px solid var(--amber);border-radius:50%}
+  .logo-mark::after{content:"";position:absolute;width:5px;height:5px;background:var(--amber);border-radius:50%}
+  .wordmark .txt{font-family:var(--grotesk);font-weight:700;font-size:17px;letter-spacing:-.01em}
+  .wordmark .txt span{color:var(--amber)}
+  .nav-links{display:flex;gap:4px;margin-left:14px}
+  .nav-links a{font-size:13px;font-weight:500;color:var(--ink-2);padding:8px 13px;border-radius:7px;text-decoration:none}
+  .nav-links a.on{color:var(--ink-0);background:var(--bg-3)}
+  .nav-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+  .ebay-pill{
+    display:flex;align-items:center;gap:8px;height:34px;padding:0 13px;
+    background:var(--grn-dim);border:1px solid #2b5843;border-radius:8px;
+  }
+  .ebay-pill .led{width:7px;height:7px;border-radius:50%;background:var(--grn);box-shadow:0 0 9px var(--grn)}
+  .ebay-pill .t{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:#8fe0b6}
+  .ebay-pill .t b{color:#c9f4dd;font-weight:600}
+  .avatar{width:34px;height:34px;border-radius:8px;background:var(--bg-3);border:1px solid var(--line-bright);display:grid;place-items:center;font-family:var(--grotesk);font-weight:600;font-size:13px;color:var(--ink-1)}
+
+  .dash-body{padding:24px;background:
+    radial-gradient(1200px 400px at 80% -10%,rgba(255,138,30,.05),transparent 60%),
+    var(--bg-0);}
+  .dash-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+  .dash-head h1{font-family:var(--grotesk);font-weight:700;font-size:24px;letter-spacing:-.01em}
+  .dash-head .sub{font-size:13px;color:var(--ink-2);margin-top:4px}
+  .dash-head .sub b{color:var(--ink-1);font-weight:500}
+  .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg-1)}
+  .seg button{font-family:var(--mono);font-size:11px;letter-spacing:.05em;padding:8px 14px;background:none;border:none;color:var(--ink-2);cursor:default}
+  .seg button.on{background:var(--bg-3);color:var(--amber)}
+
+  /* stat cards — instrument cluster */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+  .stat{
+    background:linear-gradient(180deg,var(--bg-2),var(--bg-1));
+    border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;position:relative;overflow:hidden;
+  }
+  .stat::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line-bright)}
+  .stat.hot::after{background:linear-gradient(180deg,var(--amber),var(--amber-dim))}
+  .stat .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);display:flex;align-items:center;gap:7px}
+  .stat .val{font-family:var(--grotesk);font-weight:700;font-size:38px;letter-spacing:-.02em;margin-top:12px;line-height:1;font-variant-numeric:tabular-nums}
+  .stat .val small{font-size:19px;color:var(--ink-2);font-weight:500}
+  .stat.hot .val{color:var(--amber)}
+  .stat .foot{margin-top:12px;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+  .delta{display:inline-flex;align-items:center;gap:3px;font-weight:600}
+  .delta.up{color:var(--grn)}
+  .delta.dn{color:var(--amber-hi)}
+  .stat .bars{display:flex;align-items:flex-end;gap:2px;height:20px;margin-top:12px}
+  .stat .bars i{flex:1;background:var(--line-bright);border-radius:1px}
+  .stat.hot .bars i:last-child{background:var(--amber)}
+
+  /* charts row */
+  .charts{display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:14px}
+  .panel{background:var(--bg-1);border:1px solid var(--line);border-radius:12px;padding:18px 20px 16px}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .panel-head .t{font-family:var(--grotesk);font-weight:600;font-size:14px}
+  .panel-head .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+  .panel-head .big{font-family:var(--grotesk);font-weight:700;font-size:22px;font-variant-numeric:tabular-nums}
+  .panel-head .big small{font-size:12px;color:var(--grn);font-weight:600;font-family:var(--mono);margin-left:6px}
+
+  /* bar chart */
+  .barchart{display:flex;align-items:flex-end;gap:14px;height:168px;padding-top:14px;position:relative}
+  .barchart .grid-ln{position:absolute;left:0;right:0;height:1px;background:var(--line);opacity:.5}
+  .barchart .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end;position:relative;z-index:1}
+  .barchart .bar{width:100%;max-width:34px;background:linear-gradient(180deg,var(--bg-3),var(--bg-2));border:1px solid var(--line-bright);border-radius:4px 4px 2px 2px;position:relative}
+  .barchart .col.peak .bar{background:linear-gradient(180deg,var(--amber),var(--amber-dim));border-color:var(--amber-dim);box-shadow:0 0 20px -4px var(--amber-glow)}
+  .barchart .bar span{position:absolute;top:-19px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:10px;color:var(--ink-2)}
+  .barchart .col.peak .bar span{color:var(--amber-hi)}
+  .barchart .d{font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.04em}
+
+  /* line chart svg */
+  .linewrap{position:relative;height:168px;margin-top:8px}
+  .linewrap svg{width:100%;height:100%;display:block}
+  .yaxis{position:absolute;top:0;bottom:22px;left:0;display:flex;flex-direction:column;justify-content:space-between}
+  .yaxis span{font-family:var(--mono);font-size:9px;color:var(--ink-3)}
+
+  /* review queue table */
+  .queue{background:var(--bg-1);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .queue-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .queue-head .t{font-family:var(--grotesk);font-weight:600;font-size:15px;display:flex;align-items:center;gap:10px}
+  .queue-head .count{font-family:var(--mono);font-size:11px;color:var(--void);background:var(--amber);border-radius:20px;padding:2px 9px;font-weight:600}
+  .queue-head .act{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-2)}
+  table{width:100%;border-collapse:collapse}
+  thead th{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:11px 20px;font-weight:500;background:var(--bg-0)}
+  thead th.r{text-align:right}
+  tbody td{padding:14px 20px;border-top:1px solid var(--line);font-size:13px;vertical-align:middle}
+  tbody tr:hover{background:var(--bg-2)}
+  .part-cell{display:flex;align-items:center;gap:13px}
+  .thumb{width:42px;height:42px;border-radius:7px;flex:none;border:1px solid var(--line-bright);background:linear-gradient(135deg,var(--bg-3),var(--bg-1));display:grid;place-items:center;position:relative;overflow:hidden}
+  .thumb::before{content:"";width:20px;height:20px;border:2px solid var(--ink-3);border-radius:3px;transform:rotate(45deg)}
+  .thumb.a::before{border-radius:50%;width:18px;height:18px}
+  .thumb.b::before{border-radius:2px;width:22px;height:14px}
+  .thumb.c::before{width:8px;height:24px;border-radius:4px}
+  .part-cell .nm{font-weight:600;font-size:13px;color:var(--ink-0);line-height:1.3;letter-spacing:-.005em}
+  .part-cell .oem{font-family:var(--mono);font-size:10.5px;color:var(--ink-2);margin-top:3px;letter-spacing:.02em}
+  .make{font-family:var(--mono);font-size:11px;color:var(--ink-1);letter-spacing:.04em}
+  .price{font-family:var(--grotesk);font-weight:700;font-size:15px;text-align:right;font-variant-numeric:tabular-nums}
+  .conf{display:flex;align-items:center;gap:8px}
+  .conf .track{width:44px;height:5px;background:var(--bg-3);border-radius:3px;overflow:hidden}
+  .conf .track i{display:block;height:100%;background:var(--amber);border-radius:3px}
+  .conf .track i.g{background:var(--grn)}
+  .conf .pct{font-family:var(--mono);font-size:11px;color:var(--ink-1)}
+  .status{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.04em;padding:5px 10px;border-radius:6px;text-transform:uppercase}
+  .status .d{width:6px;height:6px;border-radius:50%}
+  .st-pending{background:var(--amber-chip);color:var(--amber-hi);border:1px solid #4d3a1a}
+  .st-pending .d{background:var(--amber)}
+  .st-listed{background:var(--grn-dim);color:#8fe0b6;border:1px solid #2b5843}
+  .st-listed .d{background:var(--grn)}
+  .st-draft{background:var(--bg-3);color:var(--ink-1);border:1px solid var(--line-bright)}
+  .st-draft .d{background:var(--ink-2)}
+  .rowbtn{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--ink-1);border:1px solid var(--line-bright);background:var(--bg-2);padding:6px 12px;border-radius:6px;text-transform:uppercase}
+  .rowbtn.p{background:var(--amber);color:var(--void);border-color:var(--amber);font-weight:600}
+
+  /* ---------- PHONE ROW ---------- */
+  .phone-row{display:flex;gap:64px;align-items:flex-start;margin-top:20px}
+  .phone-col{display:flex;flex-direction:column;align-items:center;gap:0}
+  .phone{
+    width:390px;height:844px;background:var(--bg-0);border:9px solid #16191c;border-radius:52px;
+    position:relative;overflow:hidden;box-shadow:0 40px 90px -30px rgba(0,0,0,.9),inset 0 0 0 1px var(--line);
+  }
+  .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:118px;height:30px;background:#0a0c0d;border-radius:16px;z-index:30}
+  .statusbar{position:absolute;top:0;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;z-index:20;font-family:var(--mono);font-size:12px;color:var(--ink-0);font-weight:500}
+  .statusbar .icons{display:flex;gap:6px;align-items:center}
+  .statusbar .icons i{display:block;width:16px;height:11px;border:1.4px solid var(--ink-0);border-radius:2px;position:relative}
+  .statusbar .icons i.bat::after{content:"";position:absolute;inset:1.5px;right:5px;background:var(--amber);border-radius:1px}
+
+  /* capture screen */
+  .p-head{position:absolute;top:52px;left:0;right:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:15}
+  .p-head .ttl{font-family:var(--grotesk);font-weight:700;font-size:18px;letter-spacing:-.01em}
+  .p-head .ttl span{color:var(--amber)}
+  .p-head .chip-mini{font-family:var(--mono);font-size:10px;color:#8fe0b6;background:var(--grn-dim);border:1px solid #2b5843;padding:4px 9px;border-radius:20px;display:flex;align-items:center;gap:6px}
+  .p-head .chip-mini .led{width:6px;height:6px;border-radius:50%;background:var(--grn);box-shadow:0 0 8px var(--grn)}
+
+  .viewfinder{
+    position:absolute;top:112px;left:16px;right:16px;height:390px;border-radius:22px;overflow:hidden;
+    background:
+      repeating-linear-gradient(115deg,#141618 0 2px,#0e1012 2px 4px),
+      radial-gradient(120% 90% at 50% 40%,#22262a,#0c0e10);
+    border:1px solid var(--line-bright);
+  }
+  .viewfinder::before{
+    content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(45deg);
+    width:150px;height:150px;border:3px solid rgba(255,255,255,.10);border-radius:14px;
+  }
+  .viewfinder::after{
+    content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:96px;height:96px;border:2.5px solid rgba(255,255,255,.18);border-radius:50%;
+    box-shadow:inset 0 0 40px rgba(0,0,0,.5);
+  }
+  .vf-corners{position:absolute;inset:18px;pointer-events:none}
+  .vf-corners span{position:absolute;width:26px;height:26px;border:2px solid var(--amber)}
+  .vf-corners span:nth-child(1){top:0;left:0;border-right:0;border-bottom:0;border-radius:6px 0 0 0}
+  .vf-corners span:nth-child(2){top:0;right:0;border-left:0;border-bottom:0;border-radius:0 6px 0 0}
+  .vf-corners span:nth-child(3){bottom:0;left:0;border-right:0;border-top:0;border-radius:0 0 0 6px}
+  .vf-corners span:nth-child(4){bottom:0;right:0;border-left:0;border-top:0;border-radius:0 0 6px 0}
+  .vf-tag{position:absolute;top:14px;left:14px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--amber-hi);background:rgba(7,9,10,.7);padding:5px 10px;border-radius:6px;border:1px solid #4d3a1a;display:flex;align-items:center;gap:7px;z-index:2}
+  .vf-tag .rec{width:7px;height:7px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber)}
+  .vf-hint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:10.5px;color:var(--ink-1);background:rgba(7,9,10,.72);padding:6px 12px;border-radius:20px;border:1px solid var(--line-bright);white-space:nowrap;z-index:2}
+
+  .thumbstrip{position:absolute;top:520px;left:16px;right:16px;display:flex;gap:8px;align-items:center}
+  .thumbstrip .ts{width:40px;height:40px;border-radius:8px;flex:none;background:linear-gradient(135deg,var(--bg-3),var(--bg-1));border:1px solid var(--line-bright);position:relative}
+  .thumbstrip .ts.filled::after{content:"";position:absolute;top:5px;right:5px;width:8px;height:8px;background:var(--grn);border-radius:50%;border:1.5px solid var(--bg-0)}
+  .thumbstrip .ts.add{border-style:dashed;border-color:var(--ink-3);display:grid;place-items:center}
+  .thumbstrip .ts.add::before{content:"+";color:var(--ink-2);font-size:20px;font-weight:300}
+  .thumbstrip .cnt{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-2);flex:none;padding-left:6px}
+  .thumbstrip .cnt b{color:var(--amber)}
+
+  .field{position:absolute;left:16px;right:16px;background:var(--bg-1);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+  .field .fl{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .field .fv{font-family:var(--mono);font-size:15px;color:var(--ink-0);letter-spacing:.05em}
+  .field .cursor{display:inline-block;width:2px;height:16px;background:var(--amber);margin-left:1px;vertical-align:-2px}
+  .field-hint{top:574px}
+
+  .cta-cap{position:absolute;left:16px;right:16px;bottom:100px}
+  .cta{
+    height:58px;border-radius:14px;background:linear-gradient(180deg,var(--amber-hi),var(--amber));
+    display:flex;align-items:center;justify-content:center;gap:11px;
+    font-family:var(--grotesk);font-weight:700;font-size:17px;color:var(--void);letter-spacing:-.01em;
+    box-shadow:0 12px 30px -8px var(--amber-glow),inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  .cta .ic{width:20px;height:20px;border:2.5px solid var(--void);border-radius:5px;position:relative}
+  .cta .ic::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;background:var(--void);border-radius:50%}
+  .cta-note{text-align:center;font-family:var(--mono);font-size:10px;color:var(--ink-2);margin-top:11px;letter-spacing:.03em}
+  .cta-note b{color:var(--amber-hi)}
+
+  .tabbar{position:absolute;bottom:0;left:0;right:0;height:78px;background:var(--bg-1);border-top:1px solid var(--line);display:flex;align-items:flex-start;padding:12px 0 0;z-index:20}
+  .tabbar .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:.05em;color:var(--ink-3);text-transform:uppercase}
+  .tabbar .tab .ti{width:22px;height:22px;border:2px solid var(--ink-3);border-radius:6px;position:relative}
+  .tabbar .tab.on{color:var(--amber)}
+  .tabbar .tab.on .ti{border-color:var(--amber)}
+  .tabbar .tab.on .ti::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:7px;height:7px;background:var(--amber);border-radius:50%}
+  .tabbar .tab.cam .ti{border-radius:50%}
+  .homebar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;background:var(--ink-3);border-radius:3px;z-index:25}
+
+  /* review screen specifics */
+  .rv-scroll{position:absolute;top:104px;left:0;right:0;bottom:78px;padding:0 16px}
+  .ai-banner{background:linear-gradient(135deg,var(--amber-chip),var(--bg-2));border:1px solid #4d3a1a;border-radius:13px;padding:14px 15px;display:flex;gap:12px;align-items:center;margin-bottom:14px}
+  .ai-banner .ring{width:40px;height:40px;flex:none;border-radius:50%;background:conic-gradient(var(--amber) 0% 92%,var(--bg-3) 92% 100%);display:grid;place-items:center;position:relative}
+  .ai-banner .ring::after{content:"";position:absolute;inset:4px;background:var(--bg-1);border-radius:50%}
+  .ai-banner .ring b{position:relative;z-index:1;font-family:var(--grotesk);font-weight:700;font-size:12px;color:var(--amber-hi)}
+  .ai-banner .txt .t{font-family:var(--grotesk);font-weight:600;font-size:13px;color:var(--ink-0)}
+  .ai-banner .txt .s{font-size:11px;color:var(--ink-1);margin-top:3px;line-height:1.4}
+  .ai-banner .txt .s b{color:var(--amber-hi);font-weight:600}
+
+  .rv-field{background:var(--bg-1);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:12px}
+  .rv-field .fl{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin-bottom:9px;display:flex;justify-content:space-between;align-items:center}
+  .rv-field .counter{color:var(--ink-1)}
+  .rv-field .counter b{color:var(--grn)}
+  .rv-field .title-val{font-family:var(--tight);font-weight:600;font-size:14.5px;line-height:1.4;color:var(--ink-0);letter-spacing:-.005em}
+  .rv-field .title-val u{text-decoration:none;background:var(--amber-glow);border-bottom:1.5px solid var(--amber);padding-bottom:1px}
+  .price-row{display:flex;gap:12px}
+  .price-field{flex:1;background:var(--bg-1);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:12px}
+  .price-field.hot{border-color:#4d3a1a}
+  .price-field .pv{font-family:var(--grotesk);font-weight:700;font-size:26px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .price-field .pv small{font-size:15px;color:var(--ink-2)}
+  .price-field.hot .pv{color:var(--amber)}
+  .price-field .sugg{font-family:var(--mono);font-size:9.5px;color:var(--ink-2);margin-top:5px}
+  .fit-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin:4px 0 10px}
+  .fit-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .fit-chip{font-family:var(--mono);font-size:11px;color:var(--ink-0);background:var(--bg-2);border:1px solid var(--line-bright);border-radius:20px;padding:7px 13px;display:flex;align-items:center;gap:7px}
+  .fit-chip .x{color:var(--ink-3);font-size:13px}
+  .fit-chip.add{color:var(--amber-hi);border-color:#4d3a1a;background:var(--amber-chip)}
+  .publish-wrap{position:absolute;bottom:90px;left:16px;right:16px}
+  .btn-publish{height:56px;border-radius:14px;background:linear-gradient(180deg,var(--amber-hi),var(--amber));display:flex;align-items:center;justify-content:center;gap:10px;font-family:var(--grotesk);font-weight:700;font-size:16px;color:var(--void);letter-spacing:-.01em;box-shadow:0 12px 30px -8px var(--amber-glow),inset 0 1px 0 rgba(255,255,255,.35)}
+  .btn-publish .arw{font-size:17px}
+  .save-draft{text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--ink-2);margin-top:11px;letter-spacing:.04em}
+
+  .phone-cap{margin-top:20px;text-align:center;max-width:390px}
+  .phone-cap .pl{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);display:inline-flex;align-items:center;gap:8px}
+  .phone-cap .pl b{color:var(--void);background:var(--amber);padding:2px 8px;border-radius:4px;font-size:10px}
+  .phone-cap p{font-size:12.5px;color:var(--ink-2);margin-top:9px;line-height:1.5}
+
+  /* footer */
+  .foot{margin-top:60px;padding-top:24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.06em}
+  .foot b{color:var(--amber)}
+  .traits{display:flex;gap:10px}
+  .traits span{border:1px solid var(--line);padding:6px 12px;border-radius:20px;color:var(--ink-1)}
+</style>
+</head>
+<body>
+<div class="board">
+
+  <!-- ============ HEADER STRIP ============ -->
+  <div class="masthead">
+    <div>
+      <div class="kicker"><span class="dot"></span>Direction 01 / 03 &nbsp;·&nbsp; CycleLister Visual System</div>
+      <div class="dir-name">MACHINE<br><em>SHOP</em></div>
+      <p class="dir-sub">A dark, industrial precision-tool interface. Near-black machined surfaces, a single <b>safety-amber</b> accent reserved for primary actions and live data, and gauge-cluster stat readouts built to stay legible under garage glare. Feels like a <b>Fluke meter</b> or <b>CNC controller</b> — not a dashboard template.</p>
+      <div class="meta-row">
+        <div class="m">Type<b>Space Grotesk · Inter Tight</b></div>
+        <div class="m">Accent<b>Safety Amber #ff8a1e</b></div>
+        <div class="m">Contrast<b>WCAG AA · glare-ready</b></div>
+      </div>
+    </div>
+    <div class="swatch-block">
+      <div class="block-label">Palette — 8 tokens</div>
+      <div class="swatches">
+        <div class="chip"><div class="fill" style="background:#07090a"></div><div class="info"><div class="nm">Void</div><div class="hx">#07090A</div></div></div>
+        <div class="chip"><div class="fill" style="background:#0b0d0f"></div><div class="info"><div class="nm">Base</div><div class="hx">#0B0D0F</div></div></div>
+        <div class="chip"><div class="fill" style="background:#161a1e"></div><div class="info"><div class="nm">Surface</div><div class="hx">#161A1E</div></div></div>
+        <div class="chip"><div class="fill" style="background:#252b31"></div><div class="info"><div class="nm">Hairline</div><div class="hx">#252B31</div></div></div>
+        <div class="chip"><div class="fill" style="background:#ff8a1e"></div><div class="info"><div class="nm">Safety Amber</div><div class="hx">#FF8A1E</div></div></div>
+        <div class="chip"><div class="fill" style="background:#ffb45c"></div><div class="info"><div class="nm">Amber Hi</div><div class="hx">#FFB45C</div></div></div>
+        <div class="chip"><div class="fill" style="background:#3fae7a"></div><div class="info"><div class="nm">Live Green</div><div class="hx">#3FAE7A</div></div></div>
+        <div class="chip"><div class="fill" style="background:#f2f4f5"></div><div class="info"><div class="nm">Ink</div><div class="hx">#F2F4F5</div></div></div>
+      </div>
+      <div class="specimen">
+        <div class="block-label">Type specimen</div>
+        <div class="spec-row"><span class="tag">Display / Grotesk</span><span class="sp-display">Listings this week</span></div>
+        <div class="spec-row"><span class="tag">Heading / Grotesk</span><span class="sp-head">Review queue &amp; fitment</span></div>
+        <div class="spec-row"><span class="tag">Body / Inter Tight</span><span class="sp-body">NOS Honda CR125M Elsinore clutch arm, new old stock.</span></div>
+        <div class="spec-row"><span class="tag">Data / Mono</span><span class="sp-mono">PART# 92043-094 · $0.04/listing · 128 ↑</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DESKTOP ARTBOARD ============ -->
+  <div class="art-label">
+    <span class="idx">A</span>
+    <h2>Desktop Dashboard — Operations Cockpit</h2>
+    <span class="rule"></span>
+    <span class="spec">1520 × 900 · Review + Publish workspace</span>
+  </div>
+
+  <div class="artboard desktop">
+    <!-- top nav -->
+    <div class="topnav">
+      <div class="wordmark">
+        <div class="logo-mark"></div>
+        <div class="txt">Cycle<span>Lister</span></div>
+      </div>
+      <nav class="nav-links">
+        <a href="#" class="on">Dashboard</a>
+        <a href="#">Review Queue</a>
+        <a href="#">Inventory</a>
+        <a href="#">Sales</a>
+      </nav>
+      <div class="nav-right">
+        <div class="ebay-pill"><span class="led"></span><span class="t">eBay <b>Connected</b> · D's Cycle Connection</span></div>
+        <div class="avatar">DC</div>
+      </div>
+    </div>
+
+    <div class="dash-body">
+      <div class="dash-head">
+        <div>
+          <h1>Shop Floor Overview</h1>
+          <div class="sub">Week of Jul 6–12, 2026 · <b>24 years NOS · Yamaha · Honda · Suzuki · Kawasaki · Harley</b></div>
+        </div>
+        <div class="seg">
+          <button>DAY</button>
+          <button class="on">WEEK</button>
+          <button>MONTH</button>
+          <button>YTD</button>
+        </div>
+      </div>
+
+      <!-- stat cluster -->
+      <div class="stats">
+        <div class="stat hot">
+          <div class="lbl">Listings this week</div>
+          <div class="val">128</div>
+          <div class="bars"><i style="height:40%"></i><i style="height:55%"></i><i style="height:48%"></i><i style="height:70%"></i><i style="height:62%"></i><i style="height:85%"></i><i style="height:100%"></i></div>
+          <div class="foot"><span class="delta up">▲ 22%</span> vs last week</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">Revenue</div>
+          <div class="val"><small>$</small>3,412</div>
+          <div class="bars"><i style="height:50%"></i><i style="height:44%"></i><i style="height:66%"></i><i style="height:58%"></i><i style="height:74%"></i><i style="height:69%"></i><i style="height:90%"></i></div>
+          <div class="foot"><span class="delta up">▲ 14%</span> 41 orders shipped</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">AI cost / listing</div>
+          <div class="val"><small>$</small>0.04</div>
+          <div class="bars"><i style="height:80%"></i><i style="height:72%"></i><i style="height:60%"></i><i style="height:52%"></i><i style="height:48%"></i><i style="height:44%"></i><i style="height:40%"></i></div>
+          <div class="foot"><span class="delta up">▼ 9%</span> $5.12 spent this week</div>
+        </div>
+        <div class="stat">
+          <div class="lbl">Needs review</div>
+          <div class="val">12</div>
+          <div class="bars"><i style="height:60%"></i><i style="height:40%"></i><i style="height:75%"></i><i style="height:35%"></i><i style="height:55%"></i><i style="height:48%"></i><i style="height:66%"></i></div>
+          <div class="foot"><span class="delta dn">◆ 4 flagged</span> low confidence</div>
+        </div>
+      </div>
+
+      <!-- charts -->
+      <div class="charts">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="t">Listings created · daily</div>
+            <div class="k">Mon → Sun</div>
+          </div>
+          <div class="barchart">
+            <div class="grid-ln" style="bottom:25%"></div>
+            <div class="grid-ln" style="bottom:50%"></div>
+            <div class="grid-ln" style="bottom:75%"></div>
+            <div class="col"><div class="bar" style="height:44%"><span>14</span></div><div class="d">MON</div></div>
+            <div class="col"><div class="bar" style="height:56%"><span>18</span></div><div class="d">TUE</div></div>
+            <div class="col"><div class="bar" style="height:50%"><span>16</span></div><div class="d">WED</div></div>
+            <div class="col"><div class="bar" style="height:72%"><span>23</span></div><div class="d">THU</div></div>
+            <div class="col"><div class="bar" style="height:63%"><span>20</span></div><div class="d">FRI</div></div>
+            <div class="col peak"><div class="bar" style="height:100%"><span>31</span></div><div class="d">SAT</div></div>
+            <div class="col"><div class="bar" style="height:19%"><span>6</span></div><div class="d">SUN</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="t">Revenue · trailing 7d</div>
+            <div class="big">$3,412<small>▲ 14%</small></div>
+          </div>
+          <div class="linewrap">
+            <div class="yaxis"><span>$700</span><span>$525</span><span>$350</span><span>$175</span><span>$0</span></div>
+            <svg viewBox="0 0 560 168" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="fillg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#ff8a1e" stop-opacity="0.28"/>
+                  <stop offset="100%" stop-color="#ff8a1e" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <line x1="40" y1="42" x2="560" y2="42" stroke="#252b31" stroke-width="1"/>
+              <line x1="40" y1="84" x2="560" y2="84" stroke="#252b31" stroke-width="1"/>
+              <line x1="40" y1="126" x2="560" y2="126" stroke="#252b31" stroke-width="1"/>
+              <path d="M40,120 L128,96 L216,104 L304,60 L392,74 L480,30 L560,46 L560,168 L40,168 Z" fill="url(#fillg)"/>
+              <path d="M40,120 L128,96 L216,104 L304,60 L392,74 L480,30 L560,46" fill="none" stroke="#ff8a1e" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="40" cy="120" r="3.5" fill="#0b0d0f" stroke="#ff8a1e" stroke-width="2"/>
+              <circle cx="128" cy="96" r="3.5" fill="#0b0d0f" stroke="#ff8a1e" stroke-width="2"/>
+              <circle cx="216" cy="104" r="3.5" fill="#0b0d0f" stroke="#ff8a1e" stroke-width="2"/>
+              <circle cx="304" cy="60" r="3.5" fill="#0b0d0f" stroke="#ff8a1e" stroke-width="2"/>
+              <circle cx="392" cy="74" r="3.5" fill="#0b0d0f" stroke="#ff8a1e" stroke-width="2"/>
+              <circle cx="480" cy="30" r="4.5" fill="#ff8a1e" stroke="#0b0d0f" stroke-width="2"/>
+              <circle cx="560" cy="46" r="3.5" fill="#0b0d0f" stroke="#ff8a1e" stroke-width="2"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- review queue -->
+      <div class="queue">
+        <div class="queue-head">
+          <div class="t">Review Queue <span class="count">12 PENDING</span></div>
+          <div class="act">AUTO-DRAFTED BY AI · REVIEW BEFORE PUBLISH →</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Part</th>
+              <th>Make</th>
+              <th>AI Confidence</th>
+              <th class="r">Price</th>
+              <th>Status</th>
+              <th class="r">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="part-cell">
+                  <div class="thumb"></div>
+                  <div>
+                    <div class="nm">NOS Kawasaki Tank Cap Fitting Pin H2 S1</div>
+                    <div class="oem">PART# 92043-094</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="make">KAWASAKI</span></td>
+              <td><div class="conf"><span class="track"><i style="width:96%"></i></span><span class="pct">96%</span></div></td>
+              <td class="price">$2.95</td>
+              <td><span class="status st-pending"><span class="d"></span>Pending review</span></td>
+              <td style="text-align:right"><span class="rowbtn p">Review →</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="part-cell">
+                  <div class="thumb a"></div>
+                  <div>
+                    <div class="nm">NOS Genuine Yamaha Side Cover Grommet 76–77 XS360</div>
+                    <div class="oem">PART# 90480-01401</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="make">YAMAHA</span></td>
+              <td><div class="conf"><span class="track"><i class="g" style="width:99%"></i></span><span class="pct">99%</span></div></td>
+              <td class="price">$4.95</td>
+              <td><span class="status st-listed"><span class="d"></span>Listed</span></td>
+              <td style="text-align:right"><span class="rowbtn">View →</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="part-cell">
+                  <div class="thumb b"></div>
+                  <div>
+                    <div class="nm">NOS Honda CR125M Elsinore 1974–1975 Clutch Arm</div>
+                    <div class="oem">PART# 22810-357-000</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="make">HONDA</span></td>
+              <td><div class="conf"><span class="track"><i style="width:88%"></i></span><span class="pct">88%</span></div></td>
+              <td class="price">$54.95</td>
+              <td><span class="status st-pending"><span class="d"></span>Pending review</span></td>
+              <td style="text-align:right"><span class="rowbtn p">Review →</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="part-cell">
+                  <div class="thumb c"></div>
+                  <div>
+                    <div class="nm">NOS Suzuki Rear Shock Bolt</div>
+                    <div class="oem">PART# 09111-10001</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="make">SUZUKI</span></td>
+              <td><div class="conf"><span class="track"><i style="width:74%"></i></span><span class="pct">74%</span></div></td>
+              <td class="price">$4.95</td>
+              <td><span class="status st-draft"><span class="d"></span>Draft</span></td>
+              <td style="text-align:right"><span class="rowbtn">Edit →</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PHONE ARTBOARDS ============ -->
+  <div class="art-label">
+    <span class="idx">B</span>
+    <h2>Mobile — Shop-Floor Capture &amp; Review</h2>
+    <span class="rule"></span>
+    <span class="spec">390 × 844 · phone-in-hand, one-handed on the bench</span>
+  </div>
+
+  <div class="phone-row">
+
+    <!-- CAPTURE -->
+    <div class="phone-col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar"><span>9:41</span><span class="icons"><i style="border:none;font-size:10px;letter-spacing:-1px">•••</i><i class="bat"></i></span></div>
+
+        <div class="p-head">
+          <div class="ttl">Cycle<span>Lister</span></div>
+          <div class="chip-mini"><span class="led"></span>eBay Live</div>
+        </div>
+
+        <div class="viewfinder">
+          <div class="vf-corners"><span></span><span></span><span></span><span></span></div>
+          <div class="vf-tag"><span class="rec"></span>SCANNING PART</div>
+          <div class="vf-hint">Fill the frame · include the OEM number</div>
+        </div>
+
+        <div class="thumbstrip">
+          <div class="ts filled"></div>
+          <div class="ts filled"></div>
+          <div class="ts filled"></div>
+          <div class="ts filled"></div>
+          <div class="ts add"></div>
+          <div class="cnt"><b>4</b>/8</div>
+        </div>
+
+        <div class="field field-hint">
+          <div class="fl">◇ Part-number hint <span style="margin-left:auto;color:var(--ink-3)">optional</span></div>
+          <div class="fv">92043-094<span class="cursor"></span></div>
+        </div>
+
+        <div class="cta-cap">
+          <div class="cta"><span class="ic"></span>Create listing</div>
+          <div class="cta-note">AI drafts title, price &amp; fitment · <b>~$0.04</b> · ~7 sec</div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tab cam on"><span class="ti"></span>Capture</div>
+          <div class="tab"><span class="ti"></span>Drafts</div>
+          <div class="tab"><span class="ti"></span>Dashboard</div>
+        </div>
+        <div class="homebar"></div>
+      </div>
+      <div class="phone-cap">
+        <div class="pl"><b>B1</b> Capture Screen</div>
+        <p>Shoot the part on the bench. Amber reticle corners frame the shot; the photo strip and optional OEM hint feed the AI before one tap drafts the listing.</p>
+      </div>
+    </div>
+
+    <!-- REVIEW -->
+    <div class="phone-col">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="statusbar"><span>9:42</span><span class="icons"><i style="border:none;font-size:10px;letter-spacing:-1px">•••</i><i class="bat"></i></span></div>
+
+        <div class="p-head">
+          <div class="ttl" style="font-size:16px">Review draft</div>
+          <div class="chip-mini" style="background:var(--amber-chip);border-color:#4d3a1a;color:var(--amber-hi)"><span class="led" style="background:var(--amber);box-shadow:0 0 8px var(--amber)"></span>Draft 07</div>
+        </div>
+
+        <div class="rv-scroll">
+          <div class="ai-banner">
+            <div class="ring"><b>92%</b></div>
+            <div class="txt">
+              <div class="t">AI matched this part</div>
+              <div class="s">Identified <b>Yamaha XS360 side-cover grommet</b> from OEM 90480-01401. Verify title &amp; price before publishing.</div>
+            </div>
+          </div>
+
+          <div class="rv-field">
+            <div class="fl"><span>Listing title</span><span class="counter"><b>79</b>/80</span></div>
+            <div class="title-val">NOS Genuine Yamaha Side Cover Grommet <u>76–77 XS360</u> 90480-01401</div>
+          </div>
+
+          <div class="price-row">
+            <div class="price-field hot">
+              <div class="fl" style="font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin-bottom:9px">Price</div>
+              <div class="pv"><small>$</small>4.95</div>
+              <div class="sugg">eBay median $4.50–6.00</div>
+            </div>
+            <div class="price-field">
+              <div class="fl" style="font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);margin-bottom:9px">Condition</div>
+              <div class="pv" style="font-size:18px;font-weight:600;font-family:var(--tight)">New (NOS)</div>
+              <div class="sugg">Never installed</div>
+            </div>
+          </div>
+
+          <div class="fit-label">◇ Fitment</div>
+          <div class="fit-chips">
+            <div class="fit-chip">XS360 '76–77 <span class="x">✕</span></div>
+            <div class="fit-chip">XS400 '77 <span class="x">✕</span></div>
+            <div class="fit-chip add">+ Add fitment</div>
+          </div>
+        </div>
+
+        <div class="publish-wrap">
+          <div class="btn-publish">Publish to eBay <span class="arw">→</span></div>
+          <div class="save-draft">or save as draft · review 11 more</div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tab cam"><span class="ti"></span>Capture</div>
+          <div class="tab on"><span class="ti"></span>Drafts</div>
+          <div class="tab"><span class="ti"></span>Dashboard</div>
+        </div>
+        <div class="homebar"></div>
+      </div>
+      <div class="phone-cap">
+        <div class="pl"><b>B2</b> Review Screen</div>
+        <p>Confidence ring up top, editable title with an 80-char eBay counter, price with market context, and fitment chips. Amber Publish button is the only saturated element on screen.</p>
+      </div>
+    </div>
+
+    <!-- direction rationale column -->
+    <div class="phone-col" style="align-self:stretch;justify-content:flex-start;width:360px;align-items:stretch">
+      <div style="border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,var(--bg-1),var(--bg-0));padding:26px;height:100%">
+        <div class="block-label" style="color:var(--amber)">Why Machine Shop</div>
+        <div style="font-family:var(--grotesk);font-weight:700;font-size:22px;letter-spacing:-.01em;margin:14px 0 18px;line-height:1.15">Built for a working<br>bench, not a<br>showroom.</div>
+        <div style="border-top:1px solid var(--line);padding:16px 0;display:flex;gap:14px">
+          <div style="font-family:var(--mono);font-size:12px;color:var(--amber);font-weight:600">01</div>
+          <div><div style="font-weight:600;font-size:14px;margin-bottom:4px">Single-accent discipline</div><div style="font-size:12.5px;color:var(--ink-2);line-height:1.5">Amber marks only what's live or actionable — Publish, alerts, peak data. Everything else is machined grayscale.</div></div>
+        </div>
+        <div style="border-top:1px solid var(--line);padding:16px 0;display:flex;gap:14px">
+          <div style="font-family:var(--mono);font-size:12px;color:var(--amber);font-weight:600">02</div>
+          <div><div style="font-weight:600;font-size:14px;margin-bottom:4px">Instrument-cluster data</div><div style="font-size:12.5px;color:var(--ink-2);line-height:1.5">Tabular-numeric gauges, hairline rules and sparkline strips read like a Fluke meter under shop lighting.</div></div>
+        </div>
+        <div style="border-top:1px solid var(--line);padding:16px 0;display:flex;gap:14px">
+          <div style="font-family:var(--mono);font-size:12px;color:var(--amber);font-weight:600">03</div>
+          <div><div style="font-weight:600;font-size:14px;margin-bottom:4px">Glare-ready contrast</div><div style="font-size:12.5px;color:var(--ink-2);line-height:1.5">Near-black surfaces + high-contrast ink + big touch targets survive garage glare and greasy-glove taps.</div></div>
+        </div>
+        <div style="border-top:1px solid var(--line);padding:18px 0 0;font-family:var(--mono);font-size:11px;color:var(--ink-3);line-height:1.7">
+          FONTS · Space Grotesk / Inter Tight<br>
+          ACCENT · #FF8A1E safety amber<br>
+          MODE · Dark-only · AA contrast
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <div>CYCLELISTER · DIRECTION 01 — <b>MACHINE SHOP</b> · D's Cycle Connection · Static pitch board</div>
+    <div class="traits">
+      <span>Dark industrial precision</span>
+      <span>Single safety-amber accent</span>
+      <span>Instrument-cluster data</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

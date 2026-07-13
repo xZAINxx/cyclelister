@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CycleLister — Direction 2: Showroom</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;450;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Showroom palette */
+    --paper:      #F7F4EF;   /* warm off-white canvas */
+    --surface:    #FFFFFF;   /* card surface */
+    --surface-2:  #FBF9F5;   /* inset / zebra */
+    --ink:        #1C1B19;   /* near-black warm ink */
+    --ink-2:      #57534D;   /* secondary text (warm gray) */
+    --ink-3:      #8A857D;   /* tertiary / meta */
+    --line:       #E4DFD6;   /* 1px warm hairline */
+    --line-2:     #EFEBE3;   /* softer hairline */
+    --cobalt:     #1E48C4;   /* the one confident accent */
+    --cobalt-ink: #16307E;   /* cobalt text on light */
+    --cobalt-wash:#EAEEFB;   /* cobalt tint fill */
+    --green:      #2E7D53;   /* status: listed */
+    --green-wash: #E7F1EB;
+    --amber:      #B26B15;   /* status: pending review */
+    --amber-wash: #F6ECDC;
+    --slate-wash: #ECE9E3;   /* status: draft */
+
+    --radius:  10px;
+    --radius-s: 7px;
+    --shadow-quiet: 0 1px 2px rgba(28,27,25,.04), 0 1px 0 rgba(28,27,25,.02);
+    --shadow-card:  0 1px 3px rgba(28,27,25,.05), 0 8px 24px -18px rgba(28,27,25,.25);
+    --shadow-phone: 0 40px 80px -40px rgba(28,27,25,.45), 0 12px 30px -20px rgba(28,27,25,.30);
+    --num: "Inter", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:
+      radial-gradient(1200px 600px at 20% -10%, #FBF9F4 0%, rgba(251,249,244,0) 60%),
+      var(--paper);
+    color:var(--ink);
+    font-family:"Inter", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .board{
+    width:1600px; margin:0 auto; padding:56px 56px 88px;
+  }
+  .tnum{ font-variant-numeric: tabular-nums; font-feature-settings:"tnum" 1, "cv01" 1; letter-spacing:-0.01em; }
+  .mono{ font-family:"IBM Plex Mono", ui-monospace, monospace; }
+  .serif{ font-family:"Fraunces", Georgia, serif; }
+
+  /* ------------------------------------------------------------------ */
+  /* HEADER STRIP                                                        */
+  /* ------------------------------------------------------------------ */
+  .doc-head{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:40px; padding-bottom:24px; border-bottom:1px solid var(--line);
+  }
+  .doc-title .eyebrow{
+    font-size:12px; font-weight:600; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--cobalt-ink);
+  }
+  .doc-title h1{
+    font-family:"Fraunces", serif; font-weight:500; font-size:52px; line-height:1;
+    margin:10px 0 8px; letter-spacing:-0.01em;
+  }
+  .doc-title h1 em{ font-style:italic; color:var(--cobalt); }
+  .doc-title p{ margin:0; color:var(--ink-2); font-size:15px; max-width:640px; line-height:1.5; }
+
+  .direction-tag{
+    text-align:right; color:var(--ink-3); font-size:12.5px; line-height:1.7;
+    white-space:nowrap;
+  }
+  .direction-tag b{ color:var(--ink); font-weight:600; }
+
+  .head-panels{ display:grid; grid-template-columns: 1.35fr 1fr; gap:20px; margin-top:28px; }
+  .panel{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow-quiet); padding:20px 22px;
+  }
+  .panel .lbl{
+    font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink-3); margin-bottom:16px;
+  }
+  .swatches{ display:flex; gap:12px; flex-wrap:wrap; }
+  .swatch{ width:132px; }
+  .swatch .chip{
+    height:56px; border-radius:8px; border:1px solid rgba(28,27,25,.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+  }
+  .swatch .nm{ font-size:11.5px; font-weight:600; margin-top:8px; color:var(--ink); }
+  .swatch .hex{ font-size:11px; color:var(--ink-3); margin-top:1px; letter-spacing:.02em; }
+
+  /* Type specimen */
+  .specimen .row{ display:flex; align-items:baseline; gap:14px; padding:9px 0; border-bottom:1px dashed var(--line-2); }
+  .specimen .row:last-child{ border-bottom:0; }
+  .specimen .role{ width:74px; flex:none; font-size:10.5px; color:var(--ink-3); text-transform:uppercase; letter-spacing:.1em; font-weight:600; }
+  .spec-display{ font-family:"Fraunces", serif; font-weight:500; font-size:30px; letter-spacing:-0.01em; }
+  .spec-h{ font-size:18px; font-weight:600; letter-spacing:-0.01em; }
+  .spec-body{ font-size:14px; color:var(--ink-2); }
+  .spec-num{ font-family:"Inter"; font-variant-numeric:tabular-nums; font-size:20px; font-weight:600; letter-spacing:-0.01em; }
+  .spec-mono{ font-family:"IBM Plex Mono", monospace; font-size:13px; color:var(--ink-2); }
+
+  /* ------------------------------------------------------------------ */
+  /* SECTION SCAFFOLD                                                    */
+  /* ------------------------------------------------------------------ */
+  .section-head{ display:flex; align-items:center; gap:14px; margin:56px 0 20px; }
+  .section-head .idx{
+    font-family:"IBM Plex Mono", monospace; font-size:12px; font-weight:600;
+    color:var(--cobalt); border:1px solid var(--cobalt); border-radius:6px;
+    padding:3px 8px; letter-spacing:.04em;
+  }
+  .section-head h2{ font-size:15px; font-weight:600; letter-spacing:.02em; margin:0; }
+  .section-head .rule{ flex:1; height:1px; background:var(--line); }
+  .section-head .dims{ font-family:"IBM Plex Mono", monospace; font-size:11.5px; color:var(--ink-3); }
+
+  /* ------------------------------------------------------------------ */
+  /* DESKTOP ARTBOARD                                                    */
+  /* ------------------------------------------------------------------ */
+  .desk{
+    width:1488px; height:900px; background:var(--paper);
+    border:1px solid var(--line); border-radius:16px; overflow:hidden;
+    box-shadow:var(--shadow-card); position:relative;
+    display:flex; flex-direction:column;
+  }
+  /* top nav */
+  .topnav{
+    height:60px; flex:none; background:var(--surface); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:22px; padding:0 24px;
+  }
+  .wordmark{ display:flex; align-items:baseline; gap:2px; }
+  .wordmark .cog{
+    width:24px; height:24px; margin-right:9px; align-self:center; flex:none;
+  }
+  .wordmark .name{ font-family:"Fraunces", serif; font-weight:600; font-size:22px; letter-spacing:-0.01em; }
+  .wordmark .name span{ color:var(--cobalt); }
+  .nav-links{ display:flex; gap:4px; margin-left:8px; }
+  .nav-links a{
+    font-size:13.5px; color:var(--ink-2); text-decoration:none; padding:7px 12px;
+    border-radius:7px; font-weight:500;
+  }
+  .nav-links a.active{ color:var(--ink); background:var(--surface-2); font-weight:600; box-shadow:inset 0 0 0 1px var(--line-2); }
+  .nav-right{ margin-left:auto; display:flex; align-items:center; gap:14px; }
+  .ebay-pill{
+    display:inline-flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600;
+    color:var(--green); background:var(--green-wash); border:1px solid #CFE4D8;
+    padding:6px 11px 6px 9px; border-radius:999px;
+  }
+  .ebay-pill .dot{ width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px rgba(46,125,83,.16); }
+  .ebay-pill .brand{ font-weight:700; letter-spacing:-0.01em; }
+  .ebay-pill .brand b:nth-child(1){color:#E53238}.ebay-pill .brand b:nth-child(2){color:#0064D2}.ebay-pill .brand b:nth-child(3){color:#F5AF02}.ebay-pill .brand b:nth-child(4){color:#86B817}
+  .icon-btn{ width:34px; height:34px; border-radius:8px; border:1px solid var(--line); background:var(--surface); display:grid; place-items:center; color:var(--ink-2); }
+  .avatar{
+    width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,#25489a,#1E48C4);
+    color:#fff; font-size:12.5px; font-weight:700; display:grid; place-items:center; letter-spacing:.02em;
+  }
+
+  .desk-body{ flex:1; padding:24px 28px 26px; overflow:hidden; }
+  .page-title-row{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:20px; }
+  .page-title-row h3{ font-family:"Fraunces", serif; font-weight:500; font-size:26px; margin:0 0 3px; letter-spacing:-0.01em; }
+  .page-title-row .sub{ font-size:13px; color:var(--ink-3); }
+  .page-actions{ display:flex; gap:10px; }
+  .btn{
+    font-size:13px; font-weight:600; border-radius:8px; padding:9px 15px; cursor:default;
+    border:1px solid var(--line); background:var(--surface); color:var(--ink); display:inline-flex; align-items:center; gap:8px;
+  }
+  .btn.primary{ background:var(--cobalt); border-color:var(--cobalt); color:#fff; box-shadow:0 1px 2px rgba(30,72,196,.35); }
+  .btn .k{ font-family:"IBM Plex Mono",monospace; font-size:11px; opacity:.85; }
+
+  /* stat cards */
+  .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }
+  .stat{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 18px 15px; box-shadow:var(--shadow-quiet); position:relative;
+  }
+  .stat .cap{ font-size:12px; color:var(--ink-2); font-weight:500; display:flex; align-items:center; gap:7px; }
+  .stat .cap .ic{ width:15px; height:15px; color:var(--ink-3); }
+  .stat .val{ font-size:34px; font-weight:600; margin-top:10px; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; }
+  .stat .val small{ font-size:18px; font-weight:600; color:var(--ink-3); margin-left:1px; }
+  .stat .foot{ font-size:11.5px; margin-top:8px; display:flex; align-items:center; gap:6px; color:var(--ink-3); font-variant-numeric:tabular-nums; }
+  .delta{ display:inline-flex; align-items:center; gap:3px; font-weight:600; padding:1px 6px; border-radius:999px; font-size:11px; }
+  .delta.up{ color:var(--green); background:var(--green-wash); }
+  .delta.flat{ color:var(--cobalt-ink); background:var(--cobalt-wash); }
+  .delta.warn{ color:var(--amber); background:var(--amber-wash); }
+  .stat.accent{ }
+  .stat.accent::before{ content:""; position:absolute; left:0; top:14px; bottom:14px; width:3px; border-radius:3px; background:var(--cobalt); }
+  .stat.accent{ padding-left:20px; }
+
+  /* charts row */
+  .charts{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:20px; }
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow-quiet); padding:16px 18px 14px;
+  }
+  .card-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; }
+  .card-head .t{ font-size:13.5px; font-weight:600; }
+  .card-head .m{ font-size:11.5px; color:var(--ink-3); }
+  .legend{ display:flex; gap:14px; font-size:11px; color:var(--ink-2); }
+  .legend i{ display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:-1px; }
+
+  /* bar chart */
+  .bars{ display:flex; align-items:flex-end; gap:18px; height:150px; padding:0 4px; border-bottom:1px solid var(--line-2); }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:0; }
+  .bar-stack{ width:34px; display:flex; flex-direction:column; justify-content:flex-end; height:100%; }
+  .bar{ width:100%; border-radius:4px 4px 0 0; }
+  .bar.list{ background:var(--cobalt); }
+  .bar.rev{ background:var(--cobalt-wash); border:1px solid #CBD6F4; border-bottom:none; }
+  .bar-x{ display:flex; gap:18px; padding:9px 4px 0; }
+  .bar-x span{ flex:1; text-align:center; font-size:11px; color:var(--ink-3); font-variant-numeric:tabular-nums; }
+  .bar-val{ font-size:10.5px; color:var(--ink-2); font-weight:600; margin-bottom:5px; font-variant-numeric:tabular-nums; }
+
+  /* line chart svg */
+  .line-wrap{ position:relative; }
+  .yaxis{ position:absolute; left:0; top:0; bottom:22px; width:34px; display:flex; flex-direction:column; justify-content:space-between; }
+  .yaxis span{ font-size:10px; color:var(--ink-3); text-align:right; padding-right:6px; font-variant-numeric:tabular-nums; }
+  .xaxis{ display:flex; justify-content:space-between; padding:8px 0 0 40px; }
+  .xaxis span{ font-size:11px; color:var(--ink-3); font-variant-numeric:tabular-nums; }
+
+  /* review queue table */
+  .queue-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-quiet); overflow:hidden; }
+  .queue-head{ display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--line); }
+  .queue-head .t{ font-size:14px; font-weight:600; display:flex; align-items:center; gap:9px; }
+  .queue-head .count{ font-size:11px; font-weight:700; color:var(--amber); background:var(--amber-wash); border:1px solid #EAD9BD; padding:2px 8px; border-radius:999px; }
+  .queue-head .link{ font-size:12.5px; color:var(--cobalt); font-weight:600; }
+  table.queue{ width:100%; border-collapse:collapse; }
+  table.queue th{
+    text-align:left; font-size:10.5px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--ink-3); padding:10px 18px; background:var(--surface-2); border-bottom:1px solid var(--line);
+  }
+  table.queue td{ padding:13px 18px; border-bottom:1px solid var(--line-2); font-size:13px; vertical-align:middle; }
+  table.queue tr:last-child td{ border-bottom:0; }
+  .th-num, .td-num{ text-align:right; font-variant-numeric:tabular-nums; }
+  .part-cell{ display:flex; align-items:center; gap:13px; }
+  .thumb{
+    width:44px; height:44px; border-radius:8px; flex:none; border:1px solid var(--line);
+    display:grid; place-items:center; color:var(--ink-3); position:relative; overflow:hidden;
+    background:
+      repeating-linear-gradient(45deg, #F1EDE6 0 6px, #F6F3EE 6px 12px);
+  }
+  .thumb svg{ width:22px; height:22px; opacity:.55; }
+  .part-title{ font-weight:600; color:var(--ink); font-size:13px; line-height:1.3; max-width:520px; }
+  .part-meta{ font-size:11.5px; color:var(--ink-3); margin-top:2px; font-family:"IBM Plex Mono", monospace; letter-spacing:.01em; }
+  .brand-tag{ font-size:11px; font-weight:600; color:var(--ink-2); background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:3px 8px; white-space:nowrap; }
+  .price{ font-weight:600; font-size:14px; letter-spacing:-0.01em; }
+  .conf{ display:inline-flex; align-items:center; gap:7px; }
+  .conf .track{ width:56px; height:5px; border-radius:3px; background:var(--line); overflow:hidden; }
+  .conf .fill{ height:100%; border-radius:3px; background:var(--cobalt); }
+  .conf .pct{ font-size:11.5px; color:var(--ink-2); font-weight:600; font-variant-numeric:tabular-nums; }
+  .status{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:999px; white-space:nowrap; }
+  .status .d{ width:6px; height:6px; border-radius:50%; }
+  .status.pending{ color:var(--amber); background:var(--amber-wash); border:1px solid #EAD9BD; }
+  .status.pending .d{ background:var(--amber); }
+  .status.listed{ color:var(--green); background:var(--green-wash); border:1px solid #CFE4D8; }
+  .status.listed .d{ background:var(--green); }
+  .status.draft{ color:var(--ink-2); background:var(--slate-wash); border:1px solid var(--line); }
+  .status.draft .d{ background:var(--ink-3); }
+  .row-act{ color:var(--ink-3); font-weight:600; font-size:12px; }
+  .row-act .go{ color:var(--cobalt); }
+
+  /* ------------------------------------------------------------------ */
+  /* PHONES                                                              */
+  /* ------------------------------------------------------------------ */
+  .stage{ display:flex; gap:40px; align-items:flex-start; flex-wrap:wrap; }
+  .phone-col{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .phone-label{ font-size:12px; font-weight:600; color:var(--ink-2); letter-spacing:.02em; }
+  .phone-label span{ color:var(--ink-3); font-weight:500; }
+  .phone{
+    width:390px; height:844px; background:#0E0D0C; border-radius:52px; padding:12px;
+    box-shadow:var(--shadow-phone); position:relative; flex:none;
+  }
+  .phone .screen{
+    width:100%; height:100%; background:var(--paper); border-radius:42px; overflow:hidden;
+    position:relative; display:flex; flex-direction:column;
+  }
+  .notch{
+    position:absolute; top:12px; left:50%; transform:translateX(-50%);
+    width:118px; height:32px; background:#0E0D0C; border-radius:20px; z-index:20;
+  }
+  .status-bar{
+    height:52px; flex:none; display:flex; align-items:flex-end; justify-content:space-between;
+    padding:0 26px 8px; font-size:13px; font-weight:600; color:var(--ink); z-index:10;
+  }
+  .status-bar .icons{ display:flex; gap:6px; align-items:center; }
+
+  /* phone app header */
+  .p-head{ display:flex; align-items:center; justify-content:space-between; padding:6px 20px 12px; }
+  .p-head .title{ font-family:"Fraunces", serif; font-weight:600; font-size:20px; letter-spacing:-0.01em; }
+  .p-head .title span{ color:var(--cobalt); }
+  .p-head .mini-pill{ font-size:10.5px; font-weight:600; color:var(--green); background:var(--green-wash); border:1px solid #CFE4D8; padding:4px 9px; border-radius:999px; display:inline-flex; align-items:center; gap:5px; }
+  .p-head .mini-pill .d{ width:6px; height:6px; border-radius:50%; background:var(--green); }
+
+  /* CAPTURE screen */
+  .viewfinder{
+    margin:2px 16px 0; height:352px; border-radius:20px; position:relative; overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 50% 20%, #3a3733 0%, #211f1c 55%, #141310 100%);
+    border:1px solid #000;
+  }
+  .vf-part{
+    position:absolute; left:50%; top:52%; transform:translate(-50%,-50%);
+    width:210px; height:210px;
+  }
+  .vf-part svg{ width:100%; height:100%; filter:drop-shadow(0 12px 24px rgba(0,0,0,.5)); }
+  .vf-grid{ position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px); background-size:calc(100%/3) calc(100%/3); }
+  .vf-corner{ position:absolute; width:26px; height:26px; border:2px solid rgba(255,255,255,.85); }
+  .vf-corner.tl{ top:16px; left:16px; border-right:0; border-bottom:0; border-radius:6px 0 0 0; }
+  .vf-corner.tr{ top:16px; right:16px; border-left:0; border-bottom:0; border-radius:0 6px 0 0; }
+  .vf-corner.bl{ bottom:16px; left:16px; border-right:0; border-top:0; border-radius:0 0 0 6px; }
+  .vf-corner.br{ bottom:16px; right:16px; border-left:0; border-top:0; border-radius:0 0 6px 0; }
+  .vf-scan{
+    position:absolute; left:16px; right:16px; top:50%; height:2px;
+    background:linear-gradient(90deg, transparent, var(--cobalt), transparent);
+    box-shadow:0 0 14px 2px rgba(30,72,196,.7);
+  }
+  .vf-badge{
+    position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:600; color:#fff;
+    background:rgba(20,19,16,.72); backdrop-filter:blur(4px); padding:6px 12px; border-radius:999px;
+    border:1px solid rgba(255,255,255,.14);
+  }
+  .vf-badge .sp{ width:12px; height:12px; }
+  .vf-hint{
+    position:absolute; bottom:14px; left:16px; right:16px; text-align:center;
+    font-size:11.5px; color:rgba(255,255,255,.82); font-weight:500;
+  }
+
+  .thumb-strip{ display:flex; gap:8px; padding:14px 16px 6px; overflow:hidden; }
+  .ts{
+    width:40px; height:40px; border-radius:9px; flex:none; position:relative;
+    border:1px solid var(--line);
+    background:repeating-linear-gradient(45deg,#EDE8E0 0 5px,#F4F0EA 5px 10px);
+  }
+  .ts.filled{ border:1.5px solid var(--cobalt); background:radial-gradient(120% 120% at 40% 30%, #4a4640, #24211d); }
+  .ts.filled::after{ content:attr(data-n); position:absolute; top:3px; right:4px; font-size:9px; font-weight:700; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.6); }
+  .ts.add{ display:grid; place-items:center; color:var(--cobalt); background:var(--cobalt-wash); border:1px dashed #B9C6EE; font-size:20px; font-weight:400; }
+  .strip-cap{ padding:0 16px; font-size:11px; color:var(--ink-3); display:flex; justify-content:space-between; }
+
+  .p-field{ margin:14px 16px 0; }
+  .p-field label{ font-size:11.5px; font-weight:600; color:var(--ink-2); display:block; margin-bottom:7px; }
+  .p-input{
+    background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:13px 14px;
+    display:flex; align-items:center; gap:10px; box-shadow:var(--shadow-quiet);
+  }
+  .p-input .ph{ font-family:"IBM Plex Mono", monospace; font-size:14px; color:var(--ink); letter-spacing:.02em; }
+  .p-input .tag-ic{ color:var(--ink-3); width:16px; height:16px; flex:none; }
+  .p-input .opt{ margin-left:auto; font-size:10.5px; color:var(--ink-3); }
+
+  .p-cta{ margin:16px; margin-top:auto; }
+  .p-cta .cap-btn{
+    height:56px; border-radius:15px; background:var(--cobalt); color:#fff; font-size:16px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:10px; letter-spacing:-0.01em;
+    box-shadow:0 8px 20px -8px rgba(30,72,196,.65);
+  }
+  .p-cta .sub{ text-align:center; font-size:11px; color:var(--ink-3); margin-top:9px; }
+
+  /* bottom tabs */
+  .tabbar{
+    flex:none; height:78px; border-top:1px solid var(--line); background:rgba(255,255,255,.92);
+    backdrop-filter:blur(8px); display:flex; padding:8px 8px 0;
+  }
+  .tab{ flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding-top:5px; color:var(--ink-3); font-size:10.5px; font-weight:600; }
+  .tab svg{ width:23px; height:23px; }
+  .tab.active{ color:var(--cobalt); }
+
+  /* REVIEW screen */
+  .rev-scroll{ flex:1; overflow:hidden; }
+  .ai-banner{
+    margin:2px 16px 0; background:linear-gradient(180deg,var(--cobalt-wash),#F1F4FD);
+    border:1px solid #CBD6F4; border-radius:14px; padding:13px 15px; display:flex; gap:12px; align-items:flex-start;
+  }
+  .ai-banner .ico{ width:32px; height:32px; border-radius:9px; background:var(--cobalt); color:#fff; display:grid; place-items:center; flex:none; }
+  .ai-banner .ico svg{ width:18px; height:18px; }
+  .ai-banner .t{ font-size:12.5px; font-weight:700; color:var(--cobalt-ink); display:flex; align-items:center; gap:8px; }
+  .ai-banner .pill{ font-size:10px; font-weight:700; color:#fff; background:var(--cobalt); padding:1px 7px; border-radius:999px; font-variant-numeric:tabular-nums; }
+  .ai-banner .d{ font-size:11.5px; color:var(--cobalt-ink); opacity:.9; margin-top:3px; line-height:1.4; }
+
+  .rev-photo{
+    margin:14px 16px 0; height:150px; border-radius:14px; overflow:hidden; position:relative;
+    border:1px solid var(--line);
+    background:radial-gradient(120% 100% at 50% 30%, #37332e, #1c1a17);
+    display:grid; place-items:center;
+  }
+  .rev-photo svg{ width:100px; height:100px; opacity:.9; filter:drop-shadow(0 8px 16px rgba(0,0,0,.5)); }
+  .rev-photo .count{ position:absolute; bottom:10px; right:12px; font-size:10.5px; font-weight:600; color:#fff; background:rgba(20,19,16,.7); padding:4px 9px; border-radius:999px; }
+
+  .rev-field{ margin:16px 16px 0; }
+  .rev-field .rl{ display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; }
+  .rev-field .rl label{ font-size:11.5px; font-weight:600; color:var(--ink-2); }
+  .rev-field .rl .counter{ font-size:10.5px; font-family:"IBM Plex Mono", monospace; color:var(--ink-3); font-variant-numeric:tabular-nums; }
+  .rev-field .rl .counter b{ color:var(--green); font-weight:600; }
+  .title-box{
+    background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 13px;
+    font-size:13.5px; line-height:1.42; font-weight:500; color:var(--ink); box-shadow:var(--shadow-quiet);
+    position:relative;
+  }
+  .title-box .caret{ display:inline-block; width:1.5px; height:15px; background:var(--cobalt); vertical-align:-2px; margin-left:1px; }
+  .price-row{ display:flex; gap:12px; margin:16px 16px 0; }
+  .price-row .rev-field{ margin:0; flex:1; }
+  .price-input{ background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:12px 13px; display:flex; align-items:center; box-shadow:var(--shadow-quiet); }
+  .price-input .cur{ color:var(--ink-3); font-weight:600; font-size:15px; margin-right:3px; }
+  .price-input .amt{ font-size:16px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums; letter-spacing:-0.01em; }
+  .price-input .unit{ margin-left:auto; font-size:11px; color:var(--ink-3); }
+
+  .fit-wrap{ display:flex; flex-wrap:wrap; gap:8px; }
+  .fit{
+    font-size:12px; font-weight:600; color:var(--cobalt-ink); background:var(--cobalt-wash);
+    border:1px solid #CBD6F4; padding:6px 11px; border-radius:999px; display:inline-flex; align-items:center; gap:7px;
+  }
+  .fit .x{ color:#7f92c8; font-weight:500; }
+  .fit.add{ color:var(--ink-3); background:var(--surface); border:1px dashed var(--line); }
+
+  .rev-foot{ flex:none; padding:14px 16px 16px; border-top:1px solid var(--line); background:var(--surface); display:flex; gap:10px; }
+  .rev-foot .ghost{ flex:none; width:52px; border:1px solid var(--line); border-radius:14px; display:grid; place-items:center; color:var(--ink-2); }
+  .publish-btn{
+    flex:1; height:52px; border-radius:14px; background:var(--cobalt); color:#fff; font-size:15px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:9px; box-shadow:0 8px 20px -8px rgba(30,72,196,.6);
+  }
+
+  .caption{ font-size:12px; color:var(--ink-3); max-width:340px; line-height:1.5; margin-top:2px; }
+  .caption b{ color:var(--ink-2); font-weight:600; }
+</style>
+</head>
+<body>
+<div class="board">
+
+  <!-- ============================ HEADER STRIP ============================ -->
+  <header class="doc-head">
+    <div class="doc-title">
+      <div class="eyebrow">CycleLister · Visual Direction 2 of 3</div>
+      <h1>The <em>Showroom</em></h1>
+      <p>Clean, light, professional SaaS for D's Cycle Connection — 24 years of NOS motorcycle parts. Editorial numerals, precise hairlines, and one confident cobalt accent over warm paper. Linear-grade discipline with a hint of workshop warmth.</p>
+    </div>
+    <div class="direction-tag">
+      <b>Surface</b>&nbsp; warm paper, 1px lines<br>
+      <b>Accent</b>&nbsp; deep cobalt, committed<br>
+      <b>Data</b>&nbsp; tabular numerals, dense tables<br>
+      <b>Type</b>&nbsp; Fraunces · Inter · IBM Plex Mono
+    </div>
+  </header>
+
+  <div class="head-panels">
+    <!-- swatches -->
+    <div class="panel">
+      <div class="lbl">Palette</div>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:#F7F4EF"></div><div class="nm">Paper</div><div class="hex">#F7F4EF</div></div>
+        <div class="swatch"><div class="chip" style="background:#FFFFFF"></div><div class="nm">Surface</div><div class="hex">#FFFFFF</div></div>
+        <div class="swatch"><div class="chip" style="background:#1C1B19"></div><div class="nm">Ink</div><div class="hex">#1C1B19</div></div>
+        <div class="swatch"><div class="chip" style="background:#57534D"></div><div class="nm">Warm Gray</div><div class="hex">#57534D</div></div>
+        <div class="swatch"><div class="chip" style="background:#1E48C4"></div><div class="nm">Cobalt</div><div class="hex">#1E48C4</div></div>
+        <div class="swatch"><div class="chip" style="background:#EAEEFB"></div><div class="nm">Cobalt Wash</div><div class="hex">#EAEEFB</div></div>
+        <div class="swatch"><div class="chip" style="background:#2E7D53"></div><div class="nm">Listed</div><div class="hex">#2E7D53</div></div>
+        <div class="swatch"><div class="chip" style="background:#B26B15"></div><div class="nm">Review</div><div class="hex">#B26B15</div></div>
+      </div>
+    </div>
+    <!-- specimen -->
+    <div class="panel specimen">
+      <div class="lbl">Type Specimen</div>
+      <div class="row"><span class="role">Display</span><span class="spec-display">D's Cycle Connection</span></div>
+      <div class="row"><span class="role">Heading</span><span class="spec-h">Review queue &amp; inventory health</span></div>
+      <div class="row"><span class="role">Body</span><span class="spec-body">New Old Stock, listed with confidence.</span></div>
+      <div class="row"><span class="role">Numerals</span><span class="spec-num tnum">128 · $3,412 · $0.04 · 12</span></div>
+      <div class="row"><span class="role">Mono</span><span class="spec-mono">PART# 92043-094 · 90480-01401</span></div>
+    </div>
+  </div>
+
+  <!-- ============================ DESKTOP ============================ -->
+  <div class="section-head">
+    <span class="idx">01</span>
+    <h2>Desktop Dashboard — operations, sales &amp; review queue</h2>
+    <span class="rule"></span>
+    <span class="dims">Artboard 1488 × 900</span>
+  </div>
+
+  <div class="desk">
+    <!-- top nav -->
+    <div class="topnav">
+      <div class="wordmark">
+        <svg class="cog" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="3.4" stroke="#1E48C4" stroke-width="1.7"/>
+          <path d="M12 2.5v2.6M12 18.9v2.6M21.5 12h-2.6M5.1 12H2.5M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8M18.7 18.7l-1.8-1.8M7.1 7.1 5.3 5.3" stroke="#1C1B19" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span class="name">Cycle<span>Lister</span></span>
+      </div>
+      <nav class="nav-links">
+        <a class="active" href="#">Dashboard</a>
+        <a href="#">Listings</a>
+        <a href="#">Inventory</a>
+        <a href="#">Insights</a>
+      </nav>
+      <div class="nav-right">
+        <span class="ebay-pill"><span class="dot"></span>Connected to <span class="brand"><b>e</b><b>b</b><b>a</b><b>y</b></span></span>
+        <div class="icon-btn">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="avatar">DC</div>
+      </div>
+    </div>
+
+    <div class="desk-body">
+      <div class="page-title-row">
+        <div>
+          <h3>Good morning, Dave</h3>
+          <div class="sub">Saturday, July 11 · 12 listings need your review before they go live</div>
+        </div>
+        <div class="page-actions">
+          <span class="btn">Export CSV</span>
+          <span class="btn primary">New capture <span class="k">⌘N</span></span>
+        </div>
+      </div>
+
+      <!-- stat cards -->
+      <div class="stat-grid">
+        <div class="stat accent">
+          <div class="cap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h16M4 12h16M4 17h10" stroke-linecap="round"/></svg>Listings this week</div>
+          <div class="val tnum">128</div>
+          <div class="foot"><span class="delta up">▲ 18%</span> vs. last week (108)</div>
+        </div>
+        <div class="stat">
+          <div class="cap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v18M8 7h6a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h7" stroke-linecap="round" stroke-linejoin="round"/></svg>Revenue</div>
+          <div class="val tnum"><small>$</small>3,412</div>
+          <div class="foot"><span class="delta up">▲ 9%</span> 47 orders shipped</div>
+        </div>
+        <div class="stat">
+          <div class="cap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round" stroke-linejoin="round"/></svg>AI cost / listing</div>
+          <div class="val tnum"><small>$</small>0.04</div>
+          <div class="foot"><span class="delta flat">— steady</span> $5.12 spent this week</div>
+        </div>
+        <div class="stat">
+          <div class="cap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 9v4M12 17h.01M10.3 3.9 2.6 17.1A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.9L13.7 3.9a2 2 0 0 0-3.4 0Z" stroke-linecap="round" stroke-linejoin="round"/></svg>Needs review</div>
+          <div class="val tnum">12</div>
+          <div class="foot"><span class="delta warn">action</span> oldest waiting 2 days</div>
+        </div>
+      </div>
+
+      <!-- charts -->
+      <div class="charts">
+        <!-- bar chart -->
+        <div class="card">
+          <div class="card-head">
+            <span class="t">Listings created</span>
+            <span class="legend"><span><i style="background:#1E48C4"></i>Published</span><span><i style="background:#EAEEFB;border:1px solid #CBD6F4"></i>Drafted</span></span>
+          </div>
+          <div class="bars">
+            <div class="bar-col"><span class="bar-val tnum">14</span><div class="bar-stack" style="height:58%"><div class="bar rev" style="height:22px"></div><div class="bar list" style="flex:1"></div></div></div>
+            <div class="bar-col"><span class="bar-val tnum">19</span><div class="bar-stack" style="height:74%"><div class="bar rev" style="height:20px"></div><div class="bar list" style="flex:1"></div></div></div>
+            <div class="bar-col"><span class="bar-val tnum">11</span><div class="bar-stack" style="height:46%"><div class="bar rev" style="height:16px"></div><div class="bar list" style="flex:1"></div></div></div>
+            <div class="bar-col"><span class="bar-val tnum">22</span><div class="bar-stack" style="height:86%"><div class="bar rev" style="height:26px"></div><div class="bar list" style="flex:1"></div></div></div>
+            <div class="bar-col"><span class="bar-val tnum">18</span><div class="bar-stack" style="height:70%"><div class="bar rev" style="height:18px"></div><div class="bar list" style="flex:1"></div></div></div>
+            <div class="bar-col"><span class="bar-val tnum">25</span><div class="bar-stack" style="height:100%"><div class="bar rev" style="height:24px"></div><div class="bar list" style="flex:1"></div></div></div>
+            <div class="bar-col"><span class="bar-val tnum">19</span><div class="bar-stack" style="height:74%"><div class="bar rev" style="height:20px"></div><div class="bar list" style="flex:1"></div></div></div>
+          </div>
+          <div class="bar-x"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+        </div>
+
+        <!-- line chart -->
+        <div class="card">
+          <div class="card-head">
+            <span class="t">Revenue trend</span>
+            <span class="m tnum">7-day · $3,412 total</span>
+          </div>
+          <div class="line-wrap">
+            <div class="yaxis" style="height:150px"><span>$700</span><span>$470</span><span>$230</span><span>$0</span></div>
+            <svg viewBox="0 0 420 150" width="100%" height="150" preserveAspectRatio="none" style="display:block; padding-left:0">
+              <defs>
+                <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#1E48C4" stop-opacity="0.20"/>
+                  <stop offset="100%" stop-color="#1E48C4" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <!-- gridlines -->
+              <line x1="40" y1="8"  x2="420" y2="8"  stroke="#EFEBE3" stroke-width="1"/>
+              <line x1="40" y1="55" x2="420" y2="55" stroke="#EFEBE3" stroke-width="1"/>
+              <line x1="40" y1="102" x2="420" y2="102" stroke="#EFEBE3" stroke-width="1"/>
+              <line x1="40" y1="142" x2="420" y2="142" stroke="#E4DFD6" stroke-width="1"/>
+              <!-- area + line: 0d..6d -->
+              <path d="M40,110 L103,96 L166,104 L229,70 L292,78 L355,44 L420,52 L420,142 L40,142 Z" fill="url(#rev)"/>
+              <path d="M40,110 L103,96 L166,104 L229,70 L292,78 L355,44 L420,52" fill="none" stroke="#1E48C4" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="355" cy="44" r="3.6" fill="#fff" stroke="#1E48C4" stroke-width="2.4"/>
+              <circle cx="420" cy="52" r="3.6" fill="#1E48C4"/>
+            </svg>
+            <div class="xaxis"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- review queue -->
+      <div class="queue-card">
+        <div class="queue-head">
+          <div class="t">Review queue <span class="count tnum">12 pending</span></div>
+          <div class="link">View all →</div>
+        </div>
+        <table class="queue">
+          <thead>
+            <tr>
+              <th style="width:46%">Part</th>
+              <th>Brand / fitment</th>
+              <th>AI confidence</th>
+              <th class="th-num">Price</th>
+              <th>Status</th>
+              <th style="width:64px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="part-cell">
+                  <div class="thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/><path d="M12 5v-2M12 21v-2"/></svg></div>
+                  <div>
+                    <div class="part-title">NOS Kawasaki Tank Cap Fitting Pin H2 S1</div>
+                    <div class="part-meta">PART# 92043-094</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="brand-tag">Kawasaki · H2 / S1</span></td>
+              <td><span class="conf"><span class="track"><span class="fill" style="width:96%"></span></span><span class="pct tnum">96%</span></span></td>
+              <td class="td-num"><span class="price tnum">$2.95</span></td>
+              <td><span class="status pending"><span class="d"></span>Pending review</span></td>
+              <td><span class="row-act go">Open →</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="part-cell">
+                  <div class="thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="6" width="16" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg></div>
+                  <div>
+                    <div class="part-title">NOS Genuine Yamaha Side Cover Grommet 76–77 XS360</div>
+                    <div class="part-meta">PART# 90480-01401</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="brand-tag">Yamaha · XS360</span></td>
+              <td><span class="conf"><span class="track"><span class="fill" style="width:91%"></span></span><span class="pct tnum">91%</span></span></td>
+              <td class="td-num"><span class="price tnum">$4.95</span></td>
+              <td><span class="status listed"><span class="d"></span>Listed</span></td>
+              <td><span class="row-act">View</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="part-cell">
+                  <div class="thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 18 14 6M6 18l-2-2M14 6l4 1 1 4"/><circle cx="7" cy="17" r="2"/></svg></div>
+                  <div>
+                    <div class="part-title">NOS Honda CR125M Elsinore 1974–1975 Clutch Arm</div>
+                    <div class="part-meta">HONDA · CR125M ELSINORE</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="brand-tag">Honda · CR125M</span></td>
+              <td><span class="conf"><span class="track"><span class="fill" style="width:88%"></span></span><span class="pct tnum">88%</span></span></td>
+              <td class="td-num"><span class="price tnum">$54.95</span></td>
+              <td><span class="status pending"><span class="d"></span>Pending review</span></td>
+              <td><span class="row-act go">Open →</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="part-cell">
+                  <div class="thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 7h6l1 3-4 8-4-8 1-3Z"/><circle cx="12" cy="8.5" r="1.2"/></svg></div>
+                  <div>
+                    <div class="part-title">NOS Suzuki Rear Shock Bolt</div>
+                    <div class="part-meta">PART# 09111-10001</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="brand-tag">Suzuki · Universal</span></td>
+              <td><span class="conf"><span class="track"><span class="fill" style="width:82%"></span></span><span class="pct tnum">82%</span></span></td>
+              <td class="td-num"><span class="price tnum">$4.95</span></td>
+              <td><span class="status draft"><span class="d"></span>Draft</span></td>
+              <td><span class="row-act go">Open →</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ PHONES ============================ -->
+  <div class="section-head">
+    <span class="idx">02</span>
+    <h2>Mobile — capture on the shop floor, review anywhere</h2>
+    <span class="rule"></span>
+    <span class="dims">iPhone frame 390 × 844</span>
+  </div>
+
+  <div class="stage">
+
+    <!-- ===== CAPTURE PHONE ===== -->
+    <div class="phone-col">
+      <div class="phone-label">Capture &nbsp;<span>· photograph the part, AI drafts the listing</span></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="status-bar">
+            <span class="tnum">9:41</span>
+            <span class="icons">
+              <svg width="17" height="12" viewBox="0 0 17 12" fill="none"><rect x="0" y="7" width="3" height="4" rx="1" fill="#1C1B19"/><rect x="4" y="5" width="3" height="6" rx="1" fill="#1C1B19"/><rect x="8" y="3" width="3" height="8" rx="1" fill="#1C1B19"/><rect x="12" y="1" width="3" height="10" rx="1" fill="#1C1B19"/></svg>
+              <svg width="24" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="3" stroke="#1C1B19" stroke-width="1.2"/><rect x="3" y="3" width="15" height="6" rx="1.5" fill="#1C1B19"/><rect x="22" y="4" width="1.6" height="4" rx="1" fill="#1C1B19"/></svg>
+            </span>
+          </div>
+
+          <div class="p-head">
+            <span class="title">New <span>capture</span></span>
+            <span class="mini-pill"><span class="d"></span>eBay linked</span>
+          </div>
+
+          <!-- viewfinder -->
+          <div class="viewfinder">
+            <div class="vf-grid"></div>
+            <div class="vf-badge"><svg class="sp" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M5 3v4M3 5h4M6 17v4M4 19h4M13 3l2.5 6.5L22 12l-6.5 2.5L13 21l-2.5-6.5L4 12l6.5-2.5L13 3Z" stroke-linejoin="round"/></svg>AI identifying part…</div>
+            <div class="vf-part">
+              <svg viewBox="0 0 200 200" fill="none">
+                <ellipse cx="100" cy="108" rx="62" ry="58" fill="#3a3631"/>
+                <ellipse cx="100" cy="102" rx="62" ry="58" fill="#5a554d"/>
+                <ellipse cx="100" cy="102" rx="48" ry="45" fill="#6d675d"/>
+                <ellipse cx="100" cy="99" rx="30" ry="28" fill="#413d38"/>
+                <ellipse cx="100" cy="97" rx="30" ry="28" fill="#524d46"/>
+                <path d="M100 74 A25 25 0 0 1 122 92" stroke="#8f887c" stroke-width="4" fill="none" stroke-linecap="round"/>
+                <circle cx="100" cy="97" r="8" fill="#2e2b27"/>
+                <circle cx="70" cy="60" r="4" fill="#7d7669"/>
+                <circle cx="130" cy="60" r="4" fill="#7d7669"/>
+                <circle cx="152" cy="112" r="4" fill="#7d7669"/>
+                <circle cx="48" cy="112" r="4" fill="#7d7669"/>
+              </svg>
+            </div>
+            <div class="vf-scan"></div>
+            <span class="vf-corner tl"></span><span class="vf-corner tr"></span>
+            <span class="vf-corner bl"></span><span class="vf-corner br"></span>
+            <div class="vf-hint">Hold steady over the part · good light helps ID accuracy</div>
+          </div>
+
+          <!-- thumbnail strip -->
+          <div class="thumb-strip">
+            <div class="ts filled" data-n="1"></div>
+            <div class="ts filled" data-n="2"></div>
+            <div class="ts filled" data-n="3"></div>
+            <div class="ts filled" data-n="4"></div>
+            <div class="ts filled" data-n="5"></div>
+            <div class="ts"></div>
+            <div class="ts"></div>
+            <div class="ts add">+</div>
+          </div>
+          <div class="strip-cap"><span>5 of 8 photos</span><span>Recommended: 8</span></div>
+
+          <!-- part number hint -->
+          <div class="p-field">
+            <label>Part number hint <span style="color:var(--ink-3);font-weight:400">(optional — speeds up ID)</span></label>
+            <div class="p-input">
+              <svg class="tag-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11 11 3l9 1 1 9-8 8-10-10Z" stroke-linejoin="round"/><circle cx="15" cy="9" r="1.6"/></svg>
+              <span class="ph mono">92043-094</span>
+              <span class="opt">Kawasaki</span>
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <div class="p-cta">
+            <div class="cap-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+              Create listing
+            </div>
+            <div class="sub">AI drafts title, price &amp; fitment · ~$0.04</div>
+          </div>
+
+          <!-- tabs -->
+          <div class="tabbar">
+            <div class="tab active">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8a2 2 0 0 1 2-2h1l1.2-1.6A2 2 0 0 1 10.8 4h2.4a2 2 0 0 1 1.6.8L16 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8Z" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.4"/></svg>
+              Capture
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke-linejoin="round"/><path d="M14 3v4h4M8 13h8M8 17h5" stroke-linecap="round"/></svg>
+              Drafts
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>
+              Dashboard
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== REVIEW PHONE ===== -->
+    <div class="phone-col">
+      <div class="phone-label">Review &nbsp;<span>· confirm the AI draft, then publish to eBay</span></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="status-bar">
+            <span class="tnum">9:43</span>
+            <span class="icons">
+              <svg width="17" height="12" viewBox="0 0 17 12" fill="none"><rect x="0" y="7" width="3" height="4" rx="1" fill="#1C1B19"/><rect x="4" y="5" width="3" height="6" rx="1" fill="#1C1B19"/><rect x="8" y="3" width="3" height="8" rx="1" fill="#1C1B19"/><rect x="12" y="1" width="3" height="10" rx="1" fill="#1C1B19"/></svg>
+              <svg width="24" height="12" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="3" stroke="#1C1B19" stroke-width="1.2"/><rect x="3" y="3" width="15" height="6" rx="1.5" fill="#1C1B19"/><rect x="22" y="4" width="1.6" height="4" rx="1" fill="#1C1B19"/></svg>
+            </span>
+          </div>
+
+          <div class="p-head">
+            <span class="title">Review <span>draft</span></span>
+            <span style="font-size:11.5px;color:var(--ink-3);font-weight:600" class="mono">#1042</span>
+          </div>
+
+          <div class="rev-scroll">
+            <!-- AI confidence banner -->
+            <div class="ai-banner">
+              <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 3 4 7v5c0 4.5 3.2 7.6 8 9 4.8-1.4 8-4.5 8-9V7l-8-4Z" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div>
+                <div class="t">AI identified this part <span class="pill tnum">91% confident</span></div>
+                <div class="d">Matched to Yamaha catalog by part number 90480-01401. Verify fitment years before publishing.</div>
+              </div>
+            </div>
+
+            <!-- photo -->
+            <div class="rev-photo">
+              <svg viewBox="0 0 120 120" fill="none">
+                <rect x="24" y="42" width="72" height="42" rx="6" fill="#5a554d"/>
+                <rect x="24" y="38" width="72" height="42" rx="6" fill="#6d675d"/>
+                <circle cx="60" cy="59" r="12" fill="#413d38"/>
+                <circle cx="60" cy="59" r="6" fill="#2e2b27"/>
+                <circle cx="34" cy="48" r="3" fill="#8f887c"/>
+                <circle cx="86" cy="48" r="3" fill="#8f887c"/>
+              </svg>
+              <span class="count tnum">1 / 5</span>
+            </div>
+
+            <!-- title with counter -->
+            <div class="rev-field">
+              <div class="rl">
+                <label>Listing title</label>
+                <span class="counter"><b>62</b> / 80</span>
+              </div>
+              <div class="title-box">NOS Genuine Yamaha Side Cover Grommet 76–77 XS360 90480-01401<span class="caret"></span></div>
+            </div>
+
+            <!-- price -->
+            <div class="price-row">
+              <div class="rev-field">
+                <div class="rl"><label>Price</label></div>
+                <div class="price-input"><span class="cur">$</span><span class="amt tnum">4.95</span><span class="unit">Buy It Now</span></div>
+              </div>
+              <div class="rev-field">
+                <div class="rl"><label>Quantity</label></div>
+                <div class="price-input"><span class="amt tnum">3</span><span class="unit">in stock</span></div>
+              </div>
+            </div>
+
+            <!-- fitment chips -->
+            <div class="rev-field">
+              <div class="rl"><label>Fitment</label><span class="counter">AI-suggested</span></div>
+              <div class="fit-wrap">
+                <span class="fit">XS360 <span class="x">'76–77</span></span>
+                <span class="fit">Side cover <span class="x">L/R</span></span>
+                <span class="fit">OEM <span class="x">90480-01401</span></span>
+                <span class="fit add">+ Add fitment</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- publish footer -->
+          <div class="rev-foot">
+            <div class="ghost">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="publish-btn">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Publish to eBay
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phone-col" style="max-width:340px; align-self:center;">
+      <div class="caption">
+        <b>The workflow.</b> Dave photographs a part on the shop floor. AI identifies it from the catalog and drafts the title, price, and fitment. He reviews on his phone or desktop, confirms, and publishes straight to eBay — 24 years of parts knowledge, listed in under a minute.
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

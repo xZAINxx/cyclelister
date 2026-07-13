@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1600">
+<title>CycleLister — Direction 3: PADDOCK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=Archivo+Expanded:wght@600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ PADDOCK — design tokens ============ */
+  :root{
+    --ink:        #0E0E10;   /* near-black paddock */
+    --ink-2:      #16171A;   /* raised surface   */
+    --ink-3:      #1E2024;   /* card surface     */
+    --line:       #2A2D33;   /* hairline         */
+    --line-2:     #3A3E46;   /* stronger hairline*/
+    --smoke:      #8A8F98;   /* muted text       */
+    --chalk:      #E9EBEE;   /* primary text     */
+    --white:      #FFFFFF;
+    --yellow:     #FFD400;   /* classic racing yellow — THE accent */
+    --yellow-dim: #C9A800;
+    --red:        #E4322B;   /* warning / needs-review only */
+    --green:      #37C871;   /* listed / live */
+    --blue:       #3B9EFF;   /* draft */
+    --plate:      #F2F2F0;   /* race number plate white */
+    --plate-ink:  #101012;
+    --radius:     4px;
+    font-synthesis: none;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{background:#050506;}
+  body{
+    width:1600px;
+    font-family:'Barlow', system-ui, sans-serif;
+    color:var(--chalk);
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 90px;
+  }
+
+  .wrap{width:1600px; padding:0 64px;}
+
+  /* diagonal stripe motif — used with restraint */
+  .stripe{
+    background-image:repeating-linear-gradient(-58deg,
+       var(--yellow) 0 14px, #0E0E10 14px 28px);
+  }
+
+  .mono{font-family:'JetBrains Mono', monospace; font-variant-numeric:tabular-nums;}
+  .cond{font-family:'Barlow Condensed', sans-serif;}
+  .exp{font-family:'Archivo Expanded','Archivo', sans-serif;}
+
+  .kicker{
+    font-family:'Barlow Condensed',sans-serif; font-weight:700;
+    letter-spacing:.24em; text-transform:uppercase; font-size:12px;
+    color:var(--yellow);
+  }
+  .kicker.smoke{color:var(--smoke);}
+
+  /* race-number plate chip */
+  .plate{
+    display:inline-flex; align-items:center; justify-content:center;
+    font-family:'Archivo Expanded','Archivo',sans-serif; font-weight:800;
+    background:var(--plate); color:var(--plate-ink);
+    border-radius:5px; line-height:1;
+    box-shadow:inset 0 0 0 2px #0E0E10, 0 2px 0 rgba(0,0,0,.5);
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* status chip */
+  .chip{
+    display:inline-flex; align-items:center; gap:7px;
+    font-family:'Barlow Condensed',sans-serif; font-weight:700;
+    text-transform:uppercase; letter-spacing:.06em; font-size:12.5px;
+    padding:4px 10px 3px; border-radius:3px; white-space:nowrap;
+  }
+  .chip .dot{width:7px; height:7px; border-radius:50%;}
+  .chip.pending{background:rgba(255,212,0,.12); color:var(--yellow); box-shadow:inset 0 0 0 1px rgba(255,212,0,.35);}
+  .chip.pending .dot{background:var(--yellow);}
+  .chip.listed{background:rgba(55,200,113,.12); color:var(--green); box-shadow:inset 0 0 0 1px rgba(55,200,113,.35);}
+  .chip.listed .dot{background:var(--green);}
+  .chip.draft{background:rgba(59,158,255,.12); color:var(--blue); box-shadow:inset 0 0 0 1px rgba(59,158,255,.35);}
+  .chip.draft .dot{background:var(--blue);}
+
+  /* ================= HEADER STRIP ================= */
+  header.board{
+    position:relative;
+    background:var(--ink);
+    border-bottom:3px solid var(--yellow);
+    padding:44px 64px 40px;
+    overflow:hidden;
+  }
+  header.board .diag{
+    position:absolute; top:-40px; right:-60px; width:520px; height:340px;
+    transform:rotate(0);
+    opacity:.9;
+    clip-path:polygon(38% 0, 100% 0, 100% 100%, 0 100%);
+    background-image:repeating-linear-gradient(-58deg,
+       rgba(255,212,0,.14) 0 16px, transparent 16px 40px);
+    pointer-events:none;
+  }
+  .head-top{display:flex; align-items:flex-end; justify-content:space-between; gap:40px; position:relative;}
+  .brandline{display:flex; align-items:center; gap:22px;}
+  .num00{
+    width:74px; height:88px; font-size:44px; border-radius:8px;
+  }
+  .brandline h1{
+    font-family:'Archivo Expanded','Archivo',sans-serif; font-weight:900;
+    font-size:66px; letter-spacing:-.01em; line-height:.9; text-transform:uppercase;
+    color:var(--white);
+  }
+  .brandline h1 em{color:var(--yellow); font-style:normal;}
+  .brandsub{margin-top:12px; display:flex; align-items:center; gap:14px;}
+  .brandsub .dirlabel{
+    font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:15px;
+    letter-spacing:.22em; text-transform:uppercase; color:var(--smoke);
+  }
+  .head-desc{max-width:520px; text-align:right;}
+  .head-desc p{color:var(--smoke); font-size:14.5px; line-height:1.55; font-weight:500;}
+  .head-desc p b{color:var(--chalk); font-weight:700;}
+
+  /* swatches */
+  .swatches{display:flex; gap:0; margin-top:34px; border:1px solid var(--line); border-radius:6px; overflow:hidden; position:relative; z-index:2;}
+  .sw{flex:1; padding:16px 16px 14px; border-right:1px solid var(--line); position:relative;}
+  .sw:last-child{border-right:none;}
+  .sw .cap{width:100%; height:44px; border-radius:4px; margin-bottom:12px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);}
+  .sw .nm{font-family:'Barlow Condensed',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:.08em; font-size:12.5px; color:var(--chalk);}
+  .sw .hx{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--smoke); margin-top:2px;}
+
+  /* type specimen */
+  .specimen{
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; margin-top:22px;
+    border:1px solid var(--line); border-radius:6px; overflow:hidden; position:relative; z-index:2;
+  }
+  .spec{padding:18px 22px; border-right:1px solid var(--line);}
+  .spec:last-child{border-right:none;}
+  .spec .lbl{font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--yellow); letter-spacing:.05em; margin-bottom:8px;}
+  .spec .big{font-family:'Archivo Expanded','Archivo',sans-serif; font-weight:900; font-size:38px; line-height:.92; text-transform:uppercase; color:var(--white);}
+  .spec .midd{font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:30px; line-height:1; text-transform:uppercase; letter-spacing:.01em; color:var(--chalk);}
+  .spec .body{font-family:'Barlow',sans-serif; font-size:15px; line-height:1.5; color:var(--smoke);}
+  .spec .scale{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--smoke); margin-top:9px; line-height:1.7;}
+
+  /* ================= SECTION LABELS ================= */
+  .artlabel{display:flex; align-items:center; gap:16px; margin:56px 0 22px;}
+  .artlabel .num{
+    width:44px; height:50px; font-size:22px; border-radius:6px;
+  }
+  .artlabel .t{font-family:'Archivo Expanded','Archivo',sans-serif; font-weight:800; font-size:24px; text-transform:uppercase; letter-spacing:.01em; color:var(--white);}
+  .artlabel .sub{font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:14px; letter-spacing:.16em; text-transform:uppercase; color:var(--smoke); margin-left:4px;}
+  .artlabel .rule{flex:1; height:1px; background:var(--line);}
+
+  /* ================= DESKTOP ARTBOARD ================= */
+  .artboard{
+    width:1472px; background:var(--ink); border:1px solid var(--line-2);
+    border-radius:10px; overflow:hidden;
+    box-shadow:0 40px 80px -30px rgba(0,0,0,.9);
+  }
+  /* top nav */
+  .topnav{
+    height:64px; background:var(--ink-2); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; padding:0 22px; gap:20px;
+  }
+  .topnav .logo{display:flex; align-items:center; gap:11px;}
+  .topnav .logo .mk{width:30px; height:36px; font-size:15px; border-radius:5px;}
+  .topnav .logo .wm{font-family:'Archivo Expanded','Archivo',sans-serif; font-weight:800; font-size:19px; letter-spacing:.01em; text-transform:uppercase; color:var(--white);}
+  .topnav .logo .wm em{color:var(--yellow); font-style:normal;}
+  .topnav nav{display:flex; gap:4px; margin-left:22px;}
+  .topnav nav a{font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:15px; letter-spacing:.06em; text-transform:uppercase; color:var(--smoke); padding:8px 14px; border-radius:4px; text-decoration:none;}
+  .topnav nav a.on{color:var(--ink); background:var(--yellow);}
+  .topnav .spacer{flex:1;}
+  .ebay-pill{
+    display:flex; align-items:center; gap:9px; padding:7px 14px; border-radius:20px;
+    background:rgba(55,200,113,.10); box-shadow:inset 0 0 0 1px rgba(55,200,113,.4);
+  }
+  .ebay-pill .live{width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px rgba(55,200,113,.2);}
+  .ebay-pill .eb{font-family:'Archivo',sans-serif; font-weight:800; font-size:13.5px;}
+  .ebay-pill .eb span:nth-child(1){color:#E53238;}
+  .ebay-pill .eb span:nth-child(2){color:#0064D2;}
+  .ebay-pill .eb span:nth-child(3){color:#F5AF02;}
+  .ebay-pill .eb span:nth-child(4){color:#86B817;}
+  .ebay-pill .txt{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--green);}
+  .topnav .avatar{width:36px; height:36px; border-radius:50%; background:linear-gradient(150deg,#3A3E46,#16171A); box-shadow:inset 0 0 0 1px var(--line-2); display:flex; align-items:center; justify-content:center; font-family:'Archivo',sans-serif; font-weight:800; font-size:13px; color:var(--chalk);}
+
+  .dash-body{padding:26px 26px 30px;}
+  .dash-head{display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:20px;}
+  .dash-head h2{font-family:'Archivo Expanded','Archivo',sans-serif; font-weight:800; font-size:30px; text-transform:uppercase; letter-spacing:.005em; color:var(--white); line-height:.95;}
+  .dash-head .wk{font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:14px; letter-spacing:.14em; text-transform:uppercase; color:var(--smoke); margin-top:7px;}
+  .dash-head .cta-row{display:flex; gap:10px;}
+  .btn{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:14.5px; letter-spacing:.08em; text-transform:uppercase; padding:11px 20px; border-radius:5px; border:none; cursor:pointer;}
+  .btn.ghost{background:transparent; color:var(--chalk); box-shadow:inset 0 0 0 1px var(--line-2);}
+  .btn.solid{background:var(--yellow); color:var(--ink);}
+
+  /* stat cards */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:22px;}
+  .stat{
+    position:relative; background:var(--ink-3); border:1px solid var(--line);
+    border-radius:8px; padding:18px 20px 20px; overflow:hidden;
+  }
+  .stat .edge{position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--yellow);}
+  .stat.warn .edge{background:var(--red);}
+  .stat .lab{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:13px; letter-spacing:.12em; text-transform:uppercase; color:var(--smoke); display:flex; align-items:center; justify-content:space-between;}
+  .stat .val{font-family:'Archivo Expanded','Archivo',sans-serif; font-weight:900; font-size:44px; line-height:1; color:var(--white); margin-top:14px; font-variant-numeric:tabular-nums;}
+  .stat .val small{font-size:24px; color:var(--smoke); font-weight:800;}
+  .stat .val.yel{color:var(--yellow);}
+  .stat .delta{font-family:'JetBrains Mono',monospace; font-size:12px; margin-top:10px; color:var(--smoke);}
+  .stat .delta b.up{color:var(--green);}
+  .stat .delta b.dn{color:var(--red);}
+  .stat .mini-plate{position:absolute; top:16px; right:16px; width:34px; height:26px; font-size:12px; border-radius:4px;}
+
+  /* charts row */
+  .charts{display:grid; grid-template-columns:1.35fr 1fr; gap:16px; margin-bottom:22px;}
+  .panel{background:var(--ink-3); border:1px solid var(--line); border-radius:8px; padding:18px 20px 12px;}
+  .panel .ph{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  .panel .ph .ttl{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:16px; letter-spacing:.1em; text-transform:uppercase; color:var(--chalk);}
+  .panel .ph .meta{font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--smoke);}
+  .legend{display:flex; gap:14px; align-items:center;}
+  .legend span{display:flex; align-items:center; gap:6px; font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--smoke);}
+  .legend i{width:10px; height:10px; border-radius:2px; display:inline-block;}
+
+  /* bar chart */
+  .bars{display:flex; align-items:flex-end; gap:16px; height:196px; padding-top:8px;}
+  .barcol{flex:1; display:flex; flex-direction:column; align-items:center; gap:9px; height:100%; justify-content:flex-end;}
+  .barcol .stk{width:100%; max-width:52px; display:flex; flex-direction:column; justify-content:flex-end; border-radius:3px 3px 0 0; overflow:hidden;}
+  .barcol .stk .listed{background:var(--yellow);}
+  .barcol .stk .draft{background:var(--line-2);}
+  .barcol .cap{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:12.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--smoke);}
+  .barcol .num{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--chalk); font-weight:500;}
+
+  /* line chart svg */
+  .linewrap{position:relative;}
+  .linewrap svg{display:block; width:100%; height:196px;}
+  .linefoot{display:flex; justify-content:space-between; margin-top:6px; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--smoke);}
+
+  /* review queue table */
+  .queue{background:var(--ink-3); border:1px solid var(--line); border-radius:8px; overflow:hidden;}
+  .queue .qh{display:flex; align-items:center; justify-content:space-between; padding:16px 22px; border-bottom:1px solid var(--line);}
+  .queue .qh .ql{display:flex; align-items:center; gap:12px;}
+  .queue .qh .ttl{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:17px; letter-spacing:.1em; text-transform:uppercase; color:var(--chalk);}
+  .queue .qh .cnt-plate{width:38px; height:28px; font-size:14px; border-radius:4px;}
+  .queue .qh .viewall{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--yellow); text-decoration:none;}
+  table{width:100%; border-collapse:collapse;}
+  thead th{
+    font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--smoke); text-align:left; padding:12px 22px; border-bottom:1px solid var(--line); background:var(--ink-2);
+  }
+  thead th.r{text-align:right;}
+  tbody td{padding:15px 22px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  .thumb{width:46px; height:46px; border-radius:5px; background:var(--ink-2); box-shadow:inset 0 0 0 1px var(--line-2); position:relative; overflow:hidden; flex-shrink:0;}
+  /* duotone implied part photo */
+  .duo{width:100%; height:100%; background:linear-gradient(135deg, #2A2410 0%, #4A3E12 40%, var(--yellow-dim) 100%); position:relative;}
+  .duo::after{content:""; position:absolute; inset:0; background:repeating-linear-gradient(-58deg, rgba(0,0,0,.28) 0 3px, transparent 3px 7px); mix-blend-mode:multiply;}
+  .duo.cog{background:radial-gradient(circle at 50% 45%, var(--yellow-dim) 0 20%, #3A3210 45%, #1c1808 75%);}
+  .partcell{display:flex; align-items:center; gap:14px;}
+  .partcell .meta .ttl{font-family:'Barlow',sans-serif; font-weight:600; font-size:14.5px; color:var(--chalk); line-height:1.3; max-width:560px;}
+  .partcell .meta .sub{font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--smoke); margin-top:4px;}
+  .partcell .meta .sub b{color:var(--yellow);}
+  td.price{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15px; color:var(--white); text-align:right;}
+  td.conf{font-family:'JetBrains Mono',monospace; font-size:13px; text-align:right;}
+  .conf .bar{display:inline-block; width:52px; height:6px; border-radius:3px; background:var(--line-2); position:relative; vertical-align:middle; margin-right:9px; overflow:hidden;}
+  .conf .bar i{position:absolute; left:0; top:0; bottom:0; background:var(--green); display:block;}
+  .conf .bar i.mid{background:var(--yellow);}
+  td.act{text-align:right;}
+  .row-btn{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:12.5px; letter-spacing:.08em; text-transform:uppercase; padding:7px 14px; border-radius:4px; background:transparent; color:var(--chalk); box-shadow:inset 0 0 0 1px var(--line-2); cursor:pointer;}
+  .row-btn.p{background:var(--yellow); color:var(--ink); box-shadow:none;}
+
+  /* ================= PHONES ROW ================= */
+  .phones-grid{display:grid; grid-template-columns:390px 390px 1fr; gap:44px; align-items:start;}
+  .phone{
+    width:390px; height:844px; background:var(--ink); border-radius:44px;
+    box-shadow:0 0 0 12px #1A1B1E, 0 0 0 13px #303237, 0 40px 80px -28px rgba(0,0,0,.9);
+    position:relative; overflow:hidden;
+  }
+  .notch{position:absolute; top:0; left:50%; transform:translateX(-50%); width:150px; height:30px; background:#000; border-radius:0 0 18px 18px; z-index:40;}
+  .pstatus{position:absolute; top:0; left:0; right:0; height:52px; display:flex; align-items:center; justify-content:space-between; padding:16px 28px 0; z-index:30; font-family:'Barlow',sans-serif; font-weight:600; font-size:14px; color:var(--white);}
+  .pstatus .ic{display:flex; gap:6px; align-items:center; font-size:12px;}
+
+  /* ---- CAPTURE screen ---- */
+  .cap-screen{position:absolute; inset:0; display:flex; flex-direction:column; background:#000;}
+  .cap-topbar{padding:60px 22px 14px; display:flex; align-items:center; justify-content:space-between; background:var(--ink); z-index:5;}
+  .cap-topbar .l{display:flex; align-items:center; gap:9px;}
+  .cap-topbar .mk{width:24px; height:29px; font-size:12px; border-radius:4px;}
+  .cap-topbar .wm{font-family:'Archivo Expanded','Archivo',sans-serif; font-weight:800; font-size:15px; text-transform:uppercase; color:var(--white);}
+  .cap-topbar .wm em{color:var(--yellow); font-style:normal;}
+  .cap-topbar .ct{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--smoke);}
+
+  .viewfinder{flex:1; position:relative; background:radial-gradient(circle at 50% 42%, #34301e 0%, #17150c 55%, #050505 100%); overflow:hidden;}
+  .viewfinder .part-silhouette{position:absolute; top:50%; left:50%; transform:translate(-50%,-52%); width:210px; height:210px; border-radius:50%; background:radial-gradient(circle at 46% 40%, var(--yellow-dim) 0 22%, #4a3f14 44%, #241f0c 70%, transparent 78%); filter:blur(.3px);}
+  .viewfinder .part-silhouette::after{content:""; position:absolute; inset:0; background:repeating-linear-gradient(-58deg, rgba(0,0,0,.25) 0 4px, transparent 4px 9px); border-radius:50%; mix-blend-mode:multiply;}
+  /* reticle corners */
+  .reticle{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:250px; height:250px;}
+  .reticle span{position:absolute; width:30px; height:30px; border:2.5px solid var(--yellow);}
+  .reticle span.tl{top:0; left:0; border-right:none; border-bottom:none;}
+  .reticle span.tr{top:0; right:0; border-left:none; border-bottom:none;}
+  .reticle span.bl{bottom:0; left:0; border-right:none; border-top:none;}
+  .reticle span.br{bottom:0; right:0; border-left:none; border-top:none;}
+  .vf-hint{position:absolute; top:26px; left:50%; transform:translateX(-50%); background:rgba(14,14,16,.82); backdrop-filter:blur(4px); padding:8px 16px; border-radius:20px; font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--yellow); box-shadow:inset 0 0 0 1px rgba(255,212,0,.3); white-space:nowrap;}
+  .vf-ai{position:absolute; bottom:20px; left:22px; right:22px; display:flex; align-items:center; gap:10px; background:rgba(14,14,16,.86); backdrop-filter:blur(6px); border-radius:10px; padding:11px 14px; box-shadow:inset 0 0 0 1px var(--line-2);}
+  .vf-ai .spark{width:26px; height:26px; border-radius:6px; background:var(--yellow); display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .vf-ai .tx{font-family:'Barlow',sans-serif; font-size:12.5px; color:var(--chalk); line-height:1.35;}
+  .vf-ai .tx b{color:var(--white); font-weight:700;}
+
+  .cap-controls{background:var(--ink); padding:16px 22px 8px;}
+  .thumbstrip{display:flex; gap:8px; margin-bottom:16px;}
+  .thumbstrip .ts{width:40px; height:40px; border-radius:6px; box-shadow:inset 0 0 0 1px var(--line-2); flex-shrink:0; overflow:hidden; position:relative;}
+  .thumbstrip .ts .duo{border-radius:6px;}
+  .thumbstrip .ts.empty{background:var(--ink-3); box-shadow:inset 0 0 0 1px var(--line); display:flex; align-items:center; justify-content:center; color:var(--line-2); font-size:18px;}
+  .thumbstrip .ts.count{background:var(--ink-2); box-shadow:inset 0 0 0 1px var(--line-2); display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .thumbstrip .ts.count b{font-family:'Archivo Expanded','Archivo',sans-serif; font-weight:800; font-size:14px; color:var(--yellow); line-height:1;}
+  .thumbstrip .ts.count span{font-family:'Barlow Condensed',sans-serif; font-size:8px; letter-spacing:.1em; text-transform:uppercase; color:var(--smoke);}
+
+  .hintfield{background:var(--ink-3); border-radius:9px; padding:11px 14px; margin-bottom:16px; box-shadow:inset 0 0 0 1px var(--line);}
+  .hintfield .hl{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--smoke); margin-bottom:5px;}
+  .hintfield .hv{font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--white);}
+  .hintfield .hv .cur{color:var(--yellow);}
+
+  .shutter-row{display:flex; align-items:center; justify-content:space-between; padding:2px 8px 14px;}
+  .shutter-side{width:44px; height:44px; border-radius:10px; background:var(--ink-3); box-shadow:inset 0 0 0 1px var(--line-2); display:flex; align-items:center; justify-content:center;}
+  .shutter{width:66px; height:66px; border-radius:50%; background:var(--yellow); box-shadow:0 0 0 4px var(--ink), 0 0 0 6px var(--yellow-dim);}
+  .create-cta{display:block; width:100%; text-align:center; background:var(--yellow); color:var(--ink); font-family:'Archivo Expanded','Archivo',sans-serif; font-weight:800; text-transform:uppercase; letter-spacing:.02em; font-size:16px; padding:16px; border-radius:11px; border:none; margin-bottom:6px;}
+
+  /* bottom tabs */
+  .tabs{display:flex; background:var(--ink-2); border-top:1px solid var(--line); padding:9px 0 24px;}
+  .tab{flex:1; display:flex; flex-direction:column; align-items:center; gap:5px;}
+  .tab .ti{width:22px; height:22px;}
+  .tab .tl{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;}
+  .tab.on .tl{color:var(--yellow);} .tab.on svg{stroke:var(--yellow);}
+  .tab.off .tl{color:var(--smoke);} .tab.off svg{stroke:var(--smoke);}
+
+  /* ---- REVIEW screen ---- */
+  .rev-screen{position:absolute; inset:0; display:flex; flex-direction:column; background:var(--ink);}
+  .rev-top{padding:60px 20px 14px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); background:var(--ink-2);}
+  .rev-top .bk{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--chalk); display:flex; align-items:center; gap:6px;}
+  .rev-top .ttl{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:14px; letter-spacing:.14em; text-transform:uppercase; color:var(--white);}
+  .rev-top .step{width:30px; height:24px; font-size:11px; border-radius:4px;}
+  .rev-body{flex:1; overflow:hidden; padding:16px 20px 0; display:flex; flex-direction:column; gap:14px;}
+
+  .ai-banner{display:flex; align-items:center; gap:12px; background:rgba(55,200,113,.10); box-shadow:inset 0 0 0 1px rgba(55,200,113,.4); border-radius:11px; padding:13px 15px;}
+  .ai-banner .ring{width:42px; height:42px; flex-shrink:0; position:relative;}
+  .ai-banner .ring .pct{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; color:var(--green);}
+  .ai-banner .bt{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--green);}
+  .ai-banner .bs{font-family:'Barlow',sans-serif; font-size:12px; color:var(--smoke); margin-top:3px; line-height:1.35;}
+
+  .field{background:var(--ink-3); border-radius:11px; padding:13px 15px; box-shadow:inset 0 0 0 1px var(--line);}
+  .field .fl{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .field .fl .k{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--smoke);}
+  .field .fl .counter{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--green);}
+  .field .fl .counter.near{color:var(--yellow);}
+  .field .val{font-family:'Barlow',sans-serif; font-weight:600; font-size:14.5px; color:var(--white); line-height:1.4;}
+  .field.editing{box-shadow:inset 0 0 0 1.5px var(--yellow);}
+  .field .cursor-bar{display:inline-block; width:2px; height:16px; background:var(--yellow); vertical-align:-3px; margin-left:1px;}
+
+  .price-row{display:flex; gap:12px;}
+  .price-row .field{flex:1;}
+  .price-row .field .val{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:18px;}
+  .price-row .field .val .cur{color:var(--yellow);}
+
+  .fit-field .chips{display:flex; flex-wrap:wrap; gap:7px;}
+  .fit-chip{display:inline-flex; align-items:center; gap:6px; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:12px; letter-spacing:.05em; text-transform:uppercase; background:rgba(255,212,0,.12); color:var(--yellow); box-shadow:inset 0 0 0 1px rgba(255,212,0,.4); padding:5px 10px 4px; border-radius:4px;}
+  .fit-chip.add{background:transparent; color:var(--smoke); box-shadow:inset 0 0 0 1px var(--line-2);}
+
+  .rev-foot{padding:14px 20px 26px; border-top:1px solid var(--line); background:var(--ink-2); display:flex; gap:11px; align-items:center;}
+  .rev-foot .save{width:52px; height:50px; border-radius:11px; background:var(--ink-3); box-shadow:inset 0 0 0 1px var(--line-2); display:flex; align-items:center; justify-content:center;}
+  .publish-btn{flex:1; text-align:center; background:var(--yellow); color:var(--ink); font-family:'Archivo Expanded','Archivo',sans-serif; font-weight:800; text-transform:uppercase; letter-spacing:.02em; font-size:15px; padding:16px; border-radius:11px; border:none; display:flex; align-items:center; justify-content:center; gap:9px;}
+
+  /* phone caption / notes column */
+  .notes-col{padding-top:6px;}
+  .notes-col .nkick{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:13px; letter-spacing:.2em; text-transform:uppercase; color:var(--yellow); margin-bottom:20px;}
+  .note{margin-bottom:26px; padding-left:20px; border-left:2px solid var(--line-2); position:relative;}
+  .note::before{content:""; position:absolute; left:-5px; top:4px; width:8px; height:8px; background:var(--yellow); border-radius:2px;}
+  .note h4{font-family:'Archivo Expanded','Archivo',sans-serif; font-weight:700; font-size:15px; text-transform:uppercase; letter-spacing:.01em; color:var(--white); margin-bottom:7px;}
+  .note p{font-family:'Barlow',sans-serif; font-size:14px; line-height:1.55; color:var(--smoke);}
+  .note p b{color:var(--chalk); font-weight:600;}
+
+  .phcap{margin-top:16px; display:flex; align-items:center; gap:11px;}
+  .phcap .pl{width:30px; height:24px; font-size:11px; border-radius:4px;}
+  .phcap .pt{font-family:'Archivo Expanded','Archivo',sans-serif; font-weight:700; font-size:14px; text-transform:uppercase; color:var(--white);}
+  .phcap .ps{font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--smoke); margin-left:auto;}
+
+  footer.board{margin-top:64px; padding:26px 64px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between;}
+  footer.board .fl{display:flex; align-items:center; gap:16px;}
+  footer.board .fp{width:40px; height:46px; font-size:19px; border-radius:6px;}
+  footer.board .ft{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:14px; letter-spacing:.16em; text-transform:uppercase; color:var(--smoke);}
+  footer.board .traits{display:flex; gap:10px;}
+  footer.board .traits span{font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--chalk); padding:6px 12px; border-radius:4px; box-shadow:inset 0 0 0 1px var(--line-2);}
+</style>
+</head>
+<body>
+
+<!-- ============ HEADER STRIP ============ -->
+<header class="board">
+  <div class="diag"></div>
+  <div class="head-top">
+    <div>
+      <div class="brandline">
+        <div class="plate num00 stripe" style="background-image:none; background:var(--plate);">03</div>
+        <div>
+          <h1>CYCLE<em>LISTER</em></h1>
+          <div class="brandsub">
+            <span class="kicker">Direction 03</span>
+            <span class="dirlabel">/ "Paddock" — Bold Moto-Editorial</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="head-desc">
+      <p><b>Race-paddock energy, editorial discipline.</b> Condensed display type, race-number-plate chips, one committed livery — classic racing yellow on near-black. Data stays sober; the personality lives in the chrome. Vintage race poster meets modern operations software for D's Cycle Connection.</p>
+    </div>
+  </div>
+
+  <!-- swatches -->
+  <div class="swatches">
+    <div class="sw"><div class="cap" style="background:#0E0E10;"></div><div class="nm">Paddock Ink</div><div class="hx">#0E0E10</div></div>
+    <div class="sw"><div class="cap" style="background:#1E2024;"></div><div class="nm">Card Surface</div><div class="hx">#1E2024</div></div>
+    <div class="sw"><div class="cap" style="background:#FFD400;"></div><div class="nm">Racing Yellow</div><div class="hx">#FFD400</div></div>
+    <div class="sw"><div class="cap" style="background:#F2F2F0;"></div><div class="nm">Plate White</div><div class="hx">#F2F2F0</div></div>
+    <div class="sw"><div class="cap" style="background:#E4322B;"></div><div class="nm">Flag Red</div><div class="hx">#E4322B</div></div>
+    <div class="sw"><div class="cap" style="background:#37C871;"></div><div class="nm">Live Green</div><div class="hx">#37C871</div></div>
+    <div class="sw"><div class="cap" style="background:#3B9EFF;"></div><div class="nm">Draft Blue</div><div class="hx">#3B9EFF</div></div>
+    <div class="sw"><div class="cap" style="background:#8A8F98;"></div><div class="nm">Smoke</div><div class="hx">#8A8F98</div></div>
+  </div>
+
+  <!-- type specimen -->
+  <div class="specimen">
+    <div class="spec">
+      <div class="lbl">DISPLAY / Archivo Expanded 900</div>
+      <div class="big">NOS Elsinore</div>
+      <div class="scale">Headers · wordmark · stat values<br>Uppercase, tight, expanded weight</div>
+    </div>
+    <div class="spec">
+      <div class="lbl">CHROME / Barlow Condensed 700</div>
+      <div class="midd">Review Queue · Needs Review · Publish</div>
+      <div class="scale">Labels · nav · chips · table heads<br>Condensed, wide letter-spacing</div>
+    </div>
+    <div class="spec">
+      <div class="lbl">BODY + DATA / Barlow &amp; JetBrains Mono</div>
+      <div class="body">Titles and copy set in Barlow for calm reading.</div>
+      <div class="scale">92043-094 · $54.95 · 128 · 0.04 · 80/80</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ============ ARTBOARD 1 — DESKTOP DASHBOARD ============ -->
+  <div class="artlabel">
+    <div class="plate num" style="background:var(--yellow);">A</div>
+    <div class="t">Desktop Dashboard</div>
+    <div class="sub">1600 × 900 · Operations, sales &amp; review queue</div>
+    <div class="rule"></div>
+  </div>
+
+  <div class="artboard">
+    <!-- top nav -->
+    <div class="topnav">
+      <div class="logo">
+        <div class="plate mk">03</div>
+        <div class="wm">CYCLE<em>LISTER</em></div>
+      </div>
+      <nav>
+        <a href="#" class="on">Dashboard</a>
+        <a href="#">Review Queue</a>
+        <a href="#">Listings</a>
+        <a href="#">Inventory</a>
+        <a href="#">Reports</a>
+      </nav>
+      <div class="spacer"></div>
+      <div class="ebay-pill">
+        <span class="live"></span>
+        <span class="eb"><span>e</span><span>B</span><span>a</span><span>y</span></span>
+        <span class="txt">Connected</span>
+      </div>
+      <div class="avatar">DC</div>
+    </div>
+
+    <div class="dash-body">
+      <div class="dash-head">
+        <div>
+          <h2>Shop Floor Overview</h2>
+          <div class="wk">Week 28 · Jul 6–12, 2026 · D's Cycle Connection</div>
+        </div>
+        <div class="cta-row">
+          <button class="btn ghost">Export</button>
+          <button class="btn solid">New Capture</button>
+        </div>
+      </div>
+
+      <!-- stat cards -->
+      <div class="stats">
+        <div class="stat">
+          <div class="edge"></div>
+          <div class="plate mini-plate">28</div>
+          <div class="lab">Listings This Week</div>
+          <div class="val">128</div>
+          <div class="delta"><b class="up">▲ 22%</b> &nbsp;vs. last week (105)</div>
+        </div>
+        <div class="stat">
+          <div class="edge"></div>
+          <div class="lab">Revenue</div>
+          <div class="val yel"><small>$</small>3,412</div>
+          <div class="delta"><b class="up">▲ 14%</b> &nbsp;41 orders shipped</div>
+        </div>
+        <div class="stat">
+          <div class="edge"></div>
+          <div class="lab">AI Cost / Listing</div>
+          <div class="val"><small>$</small>0.04</div>
+          <div class="delta"><b class="dn">▼ 11%</b> &nbsp;$5.12 spend this week</div>
+        </div>
+        <div class="stat warn">
+          <div class="edge"></div>
+          <div class="plate mini-plate" style="background:var(--red); color:#fff; box-shadow:inset 0 0 0 2px #0E0E10;">12</div>
+          <div class="lab">Needs Review</div>
+          <div class="val" style="color:var(--red);">12</div>
+          <div class="delta">3 low-confidence · oldest 2h ago</div>
+        </div>
+      </div>
+
+      <!-- charts -->
+      <div class="charts">
+        <!-- bar chart -->
+        <div class="panel">
+          <div class="ph">
+            <div class="ttl">Listings Created · Last 7 Days</div>
+            <div class="legend">
+              <span><i style="background:var(--yellow);"></i>Listed</span>
+              <span><i style="background:var(--line-2);"></i>Draft</span>
+            </div>
+          </div>
+          <div class="bars">
+            <div class="barcol"><div class="stk" style="height:46%;"><div class="listed" style="height:70%;"></div><div class="draft" style="height:30%;"></div></div><div class="num">14</div><div class="cap">Mon</div></div>
+            <div class="barcol"><div class="stk" style="height:62%;"><div class="listed" style="height:75%;"></div><div class="draft" style="height:25%;"></div></div><div class="num">19</div><div class="cap">Tue</div></div>
+            <div class="barcol"><div class="stk" style="height:54%;"><div class="listed" style="height:66%;"></div><div class="draft" style="height:34%;"></div></div><div class="num">17</div><div class="cap">Wed</div></div>
+            <div class="barcol"><div class="stk" style="height:78%;"><div class="listed" style="height:80%;"></div><div class="draft" style="height:20%;"></div></div><div class="num">24</div><div class="cap">Thu</div></div>
+            <div class="barcol"><div class="stk" style="height:100%;"><div class="listed" style="height:78%;"></div><div class="draft" style="height:22%;"></div></div><div class="num">31</div><div class="cap">Fri</div></div>
+            <div class="barcol"><div class="stk" style="height:44%;"><div class="listed" style="height:64%;"></div><div class="draft" style="height:36%;"></div></div><div class="num">13</div><div class="cap">Sat</div></div>
+            <div class="barcol"><div class="stk" style="height:34%;"><div class="listed" style="height:60%;"></div><div class="draft" style="height:40%;"></div></div><div class="num">10</div><div class="cap">Sun</div></div>
+          </div>
+        </div>
+
+        <!-- line chart -->
+        <div class="panel">
+          <div class="ph">
+            <div class="ttl">Revenue · 7-Day Trend</div>
+            <div class="meta">$3,412 total</div>
+          </div>
+          <div class="linewrap">
+            <svg viewBox="0 0 560 196" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#FFD400" stop-opacity="0.30"/>
+                  <stop offset="100%" stop-color="#FFD400" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <!-- gridlines -->
+              <line x1="0" y1="40"  x2="560" y2="40"  stroke="#2A2D33" stroke-width="1"/>
+              <line x1="0" y1="90"  x2="560" y2="90"  stroke="#2A2D33" stroke-width="1"/>
+              <line x1="0" y1="140" x2="560" y2="140" stroke="#2A2D33" stroke-width="1"/>
+              <!-- area -->
+              <path d="M0,150 L80,132 L160,138 L240,96 L320,104 L400,58 L480,70 L560,34 L560,196 L0,196 Z" fill="url(#rev)"/>
+              <!-- line -->
+              <path d="M0,150 L80,132 L160,138 L240,96 L320,104 L400,58 L480,70 L560,34" fill="none" stroke="#FFD400" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+              <!-- points -->
+              <circle cx="240" cy="96" r="4" fill="#0E0E10" stroke="#FFD400" stroke-width="2.5"/>
+              <circle cx="400" cy="58" r="4" fill="#0E0E10" stroke="#FFD400" stroke-width="2.5"/>
+              <circle cx="560" cy="34" r="5" fill="#FFD400"/>
+            </svg>
+          </div>
+          <div class="linefoot">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- review queue -->
+      <div class="queue">
+        <div class="qh">
+          <div class="ql">
+            <div class="ttl">Review Queue</div>
+            <div class="plate cnt-plate" style="background:var(--red); color:#fff; box-shadow:inset 0 0 0 2px #0E0E10;">12</div>
+          </div>
+          <a href="#" class="viewall">View All →</a>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Part</th>
+              <th>Status</th>
+              <th class="r">AI Confidence</th>
+              <th class="r">Price</th>
+              <th class="r">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="partcell">
+                  <div class="thumb"><div class="duo"></div></div>
+                  <div class="meta">
+                    <div class="ttl">NOS Kawasaki Tank Cap Fitting Pin H2 S1</div>
+                    <div class="sub">PART# <b>92043-094</b> · Fuel system · Qty 1</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="chip pending"><span class="dot"></span>Pending Review</span></td>
+              <td class="conf"><span class="bar"><i class="mid" style="width:71%;"></i></span>71%</td>
+              <td class="price">$2.95</td>
+              <td class="act"><button class="row-btn p">Review</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="partcell">
+                  <div class="thumb"><div class="duo cog"></div></div>
+                  <div class="meta">
+                    <div class="ttl">NOS GENUINE Yamaha Side Cover Grommet 76–77 XS360</div>
+                    <div class="sub">PART# <b>90480-01401</b> · Body · Qty 1</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="chip listed"><span class="dot"></span>Listed</span></td>
+              <td class="conf"><span class="bar"><i style="width:96%;"></i></span>96%</td>
+              <td class="price">$4.95</td>
+              <td class="act"><button class="row-btn">View on eBay</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="partcell">
+                  <div class="thumb"><div class="duo"></div></div>
+                  <div class="meta">
+                    <div class="ttl">NOS HONDA CR125M ELSINORE 1974–1975 Clutch Arm</div>
+                    <div class="sub">PART# <b>22810-357-000</b> · Drivetrain · Qty 1</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="chip pending"><span class="dot"></span>Pending Review</span></td>
+              <td class="conf"><span class="bar"><i style="width:88%;"></i></span>88%</td>
+              <td class="price">$54.95</td>
+              <td class="act"><button class="row-btn p">Review</button></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="partcell">
+                  <div class="thumb"><div class="duo cog"></div></div>
+                  <div class="meta">
+                    <div class="ttl">NOS Suzuki Rear Shock Bolt</div>
+                    <div class="sub">PART# <b>09111-10001</b> · Suspension · Qty 1</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="chip draft"><span class="dot"></span>Draft</span></td>
+              <td class="conf"><span class="bar"><i class="mid" style="width:64%;"></i></span>64%</td>
+              <td class="price">$4.95</td>
+              <td class="act"><button class="row-btn">Edit Draft</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ARTBOARDS B & C — PHONES ============ -->
+  <div class="artlabel">
+    <div class="plate num" style="background:var(--yellow);">B</div>
+    <div class="t">Mobile — Capture &amp; Review</div>
+    <div class="sub">iPhone · 390 × 844 · Shop-floor capture → AI review</div>
+    <div class="rule"></div>
+  </div>
+
+  <div class="phones-grid">
+
+    <!-- ---- PHONE 1 : CAPTURE ---- -->
+    <div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="pstatus">
+          <span>9:41</span>
+          <span class="ic">5G ▮▮▮ &nbsp;100%</span>
+        </div>
+        <div class="cap-screen">
+          <div class="cap-topbar">
+            <div class="l">
+              <div class="plate mk">03</div>
+              <div class="wm">CYCLE<em>LISTER</em></div>
+            </div>
+            <div class="ct">Capture · 8/8</div>
+          </div>
+
+          <div class="viewfinder">
+            <div class="vf-hint">◎ Center the part number</div>
+            <div class="reticle">
+              <span class="tl"></span><span class="tr"></span><span class="bl"></span><span class="br"></span>
+            </div>
+            <div class="part-silhouette"></div>
+            <div class="vf-ai">
+              <div class="spark">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6L12 2z" fill="#0E0E10"/></svg>
+              </div>
+              <div class="tx"><b>Kawasaki two-stroke</b> detected — stamped number visible, ready to identify.</div>
+            </div>
+          </div>
+
+          <div class="cap-controls">
+            <div class="thumbstrip">
+              <div class="ts"><div class="duo"></div></div>
+              <div class="ts"><div class="duo cog"></div></div>
+              <div class="ts"><div class="duo"></div></div>
+              <div class="ts"><div class="duo cog"></div></div>
+              <div class="ts"><div class="duo"></div></div>
+              <div class="ts"><div class="duo cog"></div></div>
+              <div class="ts count"><b>+2</b><span>more</span></div>
+              <div class="ts empty">+</div>
+            </div>
+
+            <div class="hintfield">
+              <div class="hl">Part Number Hint · Optional</div>
+              <div class="hv">92043-094<span class="cur">▏</span></div>
+            </div>
+
+            <div class="shutter-row">
+              <div class="shutter-side">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A8F98" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/></svg>
+              </div>
+              <div class="shutter"></div>
+              <div class="shutter-side">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A8F98" stroke-width="2"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 10a8 8 0 0 0-14-4M4 14a8 8 0 0 0 14 4"/></svg>
+              </div>
+            </div>
+
+            <button class="create-cta">Create Listing →</button>
+          </div>
+
+          <div class="tabs">
+            <div class="tab on">
+              <svg class="ti" viewBox="0 0 24 24" fill="none" stroke="#FFD400" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/></svg>
+              <div class="tl">Capture</div>
+            </div>
+            <div class="tab off">
+              <svg class="ti" viewBox="0 0 24 24" fill="none" stroke="#8A8F98" stroke-width="2"><path d="M4 4h13l3 3v13H4z"/><path d="M8 9h7M8 13h7M8 17h4"/></svg>
+              <div class="tl">Drafts</div>
+            </div>
+            <div class="tab off">
+              <svg class="ti" viewBox="0 0 24 24" fill="none" stroke="#8A8F98" stroke-width="2"><rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="5"/><rect x="13" y="10" width="8" height="11"/><rect x="3" y="13" width="8" height="8"/></svg>
+              <div class="tl">Dashboard</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phcap">
+        <div class="plate pl">B</div>
+        <div class="pt">Capture</div>
+        <div class="ps">Shop floor · phone</div>
+      </div>
+    </div>
+
+    <!-- ---- PHONE 2 : REVIEW ---- -->
+    <div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="pstatus">
+          <span>9:42</span>
+          <span class="ic">5G ▮▮▮ &nbsp;100%</span>
+        </div>
+        <div class="rev-screen">
+          <div class="rev-top">
+            <div class="bk">‹ Back</div>
+            <div class="ttl">Review Listing</div>
+            <div class="plate step">2/3</div>
+          </div>
+
+          <div class="rev-body">
+            <div class="ai-banner">
+              <div class="ring">
+                <svg width="42" height="42" viewBox="0 0 42 42">
+                  <circle cx="21" cy="21" r="17" fill="none" stroke="#2A2D33" stroke-width="4"/>
+                  <circle cx="21" cy="21" r="17" fill="none" stroke="#37C871" stroke-width="4" stroke-linecap="round" stroke-dasharray="106.8" stroke-dashoffset="10.7" transform="rotate(-90 21 21)"/>
+                </svg>
+                <div class="pct">90</div>
+              </div>
+              <div>
+                <div class="bt">High Confidence Match</div>
+                <div class="bs">AI identified this from 8 photos + part number. Verify title &amp; fitment before publishing.</div>
+              </div>
+            </div>
+
+            <div class="field editing">
+              <div class="fl">
+                <span class="k">Listing Title</span>
+                <span class="counter">72 / 80</span>
+              </div>
+              <div class="val">NOS Genuine Yamaha Side Cover Grommet 76–77 XS360 90480-01401<span class="cursor-bar"></span></div>
+            </div>
+
+            <div class="price-row">
+              <div class="field">
+                <div class="fl"><span class="k">Price</span></div>
+                <div class="val"><span class="cur">$</span>4.95</div>
+              </div>
+              <div class="field">
+                <div class="fl"><span class="k">Condition</span></div>
+                <div class="val" style="font-size:14px; padding-top:2px;">New (NOS)</div>
+              </div>
+            </div>
+
+            <div class="field fit-field">
+              <div class="fl">
+                <span class="k">Fitment</span>
+                <span class="counter near">AI suggested</span>
+              </div>
+              <div class="chips">
+                <span class="fit-chip">Yamaha XS360 ’76–77</span>
+                <span class="fit-chip">Side Cover</span>
+                <span class="fit-chip">OEM 90480-01401</span>
+                <span class="fit-chip add">+ Add fitment</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rev-foot">
+            <div class="save">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E9EBEE" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            </div>
+            <button class="publish-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E0E10" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              Publish to eBay
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="phcap">
+        <div class="plate pl">C</div>
+        <div class="pt">Review</div>
+        <div class="ps">Verify · publish</div>
+      </div>
+    </div>
+
+    <!-- ---- NOTES COLUMN ---- -->
+    <div class="notes-col">
+      <div class="nkick">Why Paddock Works</div>
+
+      <div class="note">
+        <h4>One Committed Livery</h4>
+        <p>A single accent — <b>racing yellow on near-black</b> — carries every status, chart and CTA. No second brand color to dilute it. Red appears <b>only</b> as a warning (needs-review, low confidence), so it always means "look here."</p>
+      </div>
+
+      <div class="note">
+        <h4>Plate Chips &amp; Condensed Chrome</h4>
+        <p>Race-number plates count the review queue and tag artboards. Barlow Condensed drives nav, labels and status chips — <b>personality lives in the chrome</b>, never in the data.</p>
+      </div>
+
+      <div class="note">
+        <h4>Sober Data, Legible Parts</h4>
+        <p>Part numbers, prices and confidence sit in tabular mono for scannability. Photos get an implied <b>duotone</b> treatment so a cluttered shop bench reads as one clean system.</p>
+      </div>
+
+      <div class="note">
+        <h4>Diagonal Stripe, Used Once</h4>
+        <p>The stripe motif appears in the header only — a nod to paddock signage without turning the tool into nostalgia cosplay. It stays <b>professional software first</b>.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ FOOTER ============ -->
+<footer class="board">
+  <div class="fl">
+    <div class="plate fp">03</div>
+    <div class="ft">CycleLister · Direction 03 "Paddock" · Bold Moto-Editorial</div>
+  </div>
+  <div class="traits">
+    <span>Racing yellow on near-black</span>
+    <span>Race-plate chips + condensed chrome</span>
+    <span>Sober data, editorial personality</span>
+  </div>
+</footer>
+
+</body>
+</html>
