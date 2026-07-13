@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CycleLister</string>
+    <string name="title_activity_main">CycleLister</string>
+    <string name="package_name">com.dscycleconnection.cyclelister</string>
+    <string name="custom_url_scheme">com.dscycleconnection.cyclelister</string>
+</resources>

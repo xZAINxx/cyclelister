@@ -1,6 +1,9 @@
 import { getAccessToken } from './auth/supabaseClient'
 
-const API_PREFIX = '/api'
+// In the browser the API is same-origin (/api). In the Capacitor iOS/Android
+// shell there is no same-origin backend, so VITE_API_BASE must point at the
+// deployed API (e.g. https://api.example.com).
+const API_PREFIX = `${import.meta.env.VITE_API_BASE || ''}/api`
 
 /**
  * Thin fetch wrapper for the CycleLister backend.
