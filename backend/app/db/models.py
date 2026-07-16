@@ -93,6 +93,7 @@ class Listing(TimestampMixin, Base):
     ai_confidence: Mapped[float | None] = mapped_column(Numeric(3, 2))
     needs_human_review: Mapped[bool] = mapped_column(Boolean, default=False)
     price_source: Mapped[str | None] = mapped_column(String(40))  # spec §7.1 transparency
+    price_explanation: Mapped[str | None] = mapped_column(Text)  # shown on review screen (§6 step 8)
     hint: Mapped[str | None] = mapped_column(String(200))
 
     part: Mapped[Part | None] = relationship(lazy="selectin")

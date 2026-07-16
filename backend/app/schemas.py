@@ -84,6 +84,10 @@ class ListingOut(BaseModel):
     title: str | None
     description: str | None
     price: float | None
+    computed_competitor_price: float | None = None
+    undercut_pct: float | None = None
+    price_source: str | None = None
+    price_explanation: str | None = None
     quantity: int
     category_id: str | None
     item_specifics: dict | None
@@ -108,6 +112,14 @@ class ListingOut(BaseModel):
             title=listing.title,
             description=listing.description,
             price=float(listing.price) if listing.price is not None else None,
+            computed_competitor_price=(
+                float(listing.computed_competitor_price)
+                if listing.computed_competitor_price is not None
+                else None
+            ),
+            undercut_pct=float(listing.undercut_pct) if listing.undercut_pct is not None else None,
+            price_source=listing.price_source,
+            price_explanation=listing.price_explanation,
             quantity=listing.quantity,
             category_id=listing.category_id,
             item_specifics=listing.item_specifics,

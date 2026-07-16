@@ -7,6 +7,7 @@ const STAGES = [
   { key: 'identify', label: 'Identify' },
   { key: 'catalog_match', label: 'Catalog match' },
   { key: 'generate', label: 'Generate' },
+  { key: 'price', label: 'Price' },
   { key: 'assemble', label: 'Assemble' },
 ]
 

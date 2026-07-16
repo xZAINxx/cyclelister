@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     ebay_client_secret: str = ""
     ebay_ru_name: str = ""
     ebay_marketplace_id: str = "EBAY_US"
+    # Marketplace Insights is access-restricted; flip only once eBay approves (spec §7.1).
+    ebay_insights_enabled: bool = False
     ebay_token_key: str = ""  # Fernet key; tokens encrypted at rest (spec §15)
 
     # Jobs

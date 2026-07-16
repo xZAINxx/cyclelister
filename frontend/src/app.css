@@ -412,6 +412,15 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--y
 }
 .gallery-add:hover { color: var(--yellow); border-color: var(--yellow); }
 
+/* ---------- smart pricing ---------- */
+.price-explain {
+  display: flex; align-items: center; gap: 10px; justify-content: space-between;
+  background: var(--card-2); border: 1px solid var(--line);
+  border-left: 3px solid var(--yellow); border-radius: var(--radius);
+  padding: 8px 10px; margin: -2px 0 12px; font-size: 13.5px;
+}
+.price-explain-text { flex: 1; }
+
 /* ---------- responsive ---------- */
 @media (min-width: 900px) {
   .app-main { padding-top: 22px; }

@@ -105,6 +105,7 @@ export const api = {
 
   ebayStatus: () => apiFetch('/ebay/status'),
   analyticsSummary: () => apiFetch('/analytics/summary'),
+  reprice: (id) => apiFetch(`/listings/${id}/price`, { method: 'POST' }),
 }
 
 // The backend serves image binaries directly; build the URL for <img src>.

@@ -148,12 +148,26 @@ async def run_listing_pipeline(listing_id: uuid.UUID) -> dict:
         await session.commit()
         steps["generate"] = "done"
 
+    # ---- Step 5: pricing (spec §7) ---------------------------------------------------
+    async with factory() as session:
+        listing = await _load_listing(session, listing_id)
+        try:
+            from app.services import pricing
+
+            result = await pricing.price_listing(session, listing)
+            await pricing.apply_pricing(session, listing, result)
+            steps["price"] = result.price_source
+        except Exception as err:  # pricing failure never blocks the draft (§6 resumable)
+            logger.exception("pricing failed for %s", listing_id)
+            listing.needs_human_review = True
+            listing.price_explanation = f"Pricing failed ({err}); set price manually"
+            await session.commit()
+            steps["price"] = "failed"
+
     # ---- Step 7: assemble draft -----------------------------------------------------
     async with factory() as session:
         listing = await _load_listing(session, listing_id)
         listing.status = "pending_review"
-        # Pricing engine lands in Phase 2 — seller sets price on the review screen.
-        listing.price_source = "manual_phase1"
         await session.commit()
         steps["assemble"] = "done"
 

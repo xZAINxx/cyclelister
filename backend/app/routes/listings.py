@@ -156,6 +156,22 @@ async def start_pipeline(
     return {"job_id": str(job_id)}
 
 
+@router.post("/{listing_id}/price", response_model=ListingOut)
+async def reprice_listing(
+    listing_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """Run the Smart Pricing engine on demand (spec §7; market moves, so can re-run)."""
+    from app.services import pricing
+
+    listing = await _get_listing(db, listing_id)
+    result = await pricing.price_listing(db, listing)
+    await pricing.apply_pricing(db, listing, result)
+    await db.refresh(listing)
+    return ListingOut.from_model(listing)
+
+
 @router.post("/{listing_id}/publish", response_model=ListingOut)
 async def publish_listing(
     listing_id: uuid.UUID,

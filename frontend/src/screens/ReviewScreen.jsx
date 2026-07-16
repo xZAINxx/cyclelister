@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ImagePlus, Save, UploadCloud, AlertTriangle, ShieldCheck, X } from 'lucide-react'
+import { ArrowLeft, ImagePlus, RotateCw, Save, UploadCloud, AlertTriangle, ShieldCheck, X } from 'lucide-react'
 import { api, ApiError, imageSrc } from '../api'
 import { useToast } from '../components/Toast'
 import StatusBadge from '../components/StatusBadge'
@@ -63,6 +63,7 @@ export default function ReviewScreen() {
   const [specificRows, setSpecificRows] = useState([])
 
   const [saving, setSaving] = useState(false)
+  const [repricing, setRepricing] = useState(false)
   const [showPublish, setShowPublish] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [publishBanner, setPublishBanner] = useState(null) // 503 detail text
@@ -182,6 +183,21 @@ export default function ReviewScreen() {
       toast.error(err instanceof ApiError ? err.detail : 'Failed to save listing.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const doReprice = async () => {
+    if (repricing) return
+    setRepricing(true)
+    try {
+      const updated = await api.reprice(id)
+      setListing(updated)
+      if (updated.price != null) setForm((f) => ({ ...f, price: String(updated.price) }))
+      toast.success(updated.price != null ? 'Price computed.' : 'No price found — see note.')
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.detail : 'Pricing failed.')
+    } finally {
+      setRepricing(false)
     }
   }
 
@@ -386,6 +402,16 @@ export default function ReviewScreen() {
               placeholder="1"
             />
           </label>
+        </div>
+
+        {/* Smart Pricing explanation (spec §6 step 8: price with a visible why) */}
+        <div className="price-explain">
+          <span className="price-explain-text">
+            {listing?.price_explanation || 'Smart Pricing has not run on this draft yet.'}
+          </span>
+          <button className="btn-secondary btn-sm" disabled={repricing} onClick={doReprice} type="button">
+            <RotateCw size={13} className={repricing ? 'spin' : ''} /> {repricing ? 'Pricing…' : 'Reprice'}
+          </button>
         </div>
 
         <div className="field-row">
