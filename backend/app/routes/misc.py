@@ -37,20 +37,51 @@ async def get_job(
     return JobOut.model_validate(job)
 
 
-@parts_router.get("")
-async def search_parts(
-    q: str = "",
+@parts_router.get("/facets")
+async def parts_facets(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_user),
 ):
-    query = select(Part).order_by(Part.created_at.desc()).limit(50)
+    """Brand tabs for the catalog browser (MotoLister's category tabs, modernized)."""
+    from sqlalchemy import func
+
+    rows = (await db.execute(select(Part.brand, func.count(Part.id)).group_by(Part.brand))).all()
+    brands = sorted(
+        ({"brand": b or "Other", "count": c} for b, c in rows),
+        key=lambda x: -x["count"],
+    )
+    return {"brands": brands, "total": sum(b["count"] for b in brands)}
+
+
+@parts_router.get("")
+async def search_parts(
+    q: str = "",
+    brand: str = "",
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    query = select(Part).order_by(Part.created_at.desc()).limit(100)
+    if brand:
+        query = query.where(Part.brand == (None if brand == "Other" else brand))
     if q:
         normalized = normalize_part_number(q)
-        query = query.where(
-            or_(Part.part_number.contains(normalized), Part.part_type.ilike(f"%{q}%"))
-        )
+        clauses = [Part.part_type.ilike(f"%{q}%"), Part.title_template.ilike(f"%{q}%")]
+        if normalized:
+            clauses.append(Part.part_number.contains(normalized))
+        query = query.where(or_(*clauses))
     parts = (await db.execute(query)).scalars().all()
-    return {"items": [PartOut.model_validate(p).model_dump(mode="json") for p in parts]}
+    return {
+        "items": [
+            {
+                **PartOut.model_validate(p).model_dump(mode="json"),
+                "title_template": p.title_template,
+                "notes": p.notes,
+                "source": p.source,
+                "fitment": [FitmentOut.model_validate(f).model_dump(mode="json") for f in p.fitment],
+            }
+            for p in parts
+        ]
+    }
 
 
 @parts_router.put("/{part_id}/fitment")

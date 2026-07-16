@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { Camera, Gauge, LayoutList } from 'lucide-react'
+import { Boxes, Camera, Gauge, LayoutList } from 'lucide-react'
 import EbayStatusPill from './EbayStatusPill'
 import { isSupabaseConfigured, supabase } from '../auth/supabaseClient'
 
@@ -42,6 +42,13 @@ export default function AppShell({ children, session }) {
         >
           <LayoutList size={22} />
           <span>Drafts</span>
+        </NavLink>
+        <NavLink
+          to="/catalog"
+          className={({ isActive }) => `tab ${isActive ? 'tab-active' : ''}`}
+        >
+          <Boxes size={22} />
+          <span>Catalog</span>
         </NavLink>
         <NavLink
           to="/dashboard"

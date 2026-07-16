@@ -48,6 +48,18 @@ async def create_listing(
     user: User = Depends(current_user),
 ):
     listing = Listing(status="draft", hint=body.hint)
+    if body.part_id is not None:
+        from app.db.models import Part
+
+        part = await db.get(Part, body.part_id)
+        if part is None:
+            raise HTTPException(status_code=404, detail="Part not found")
+        # Catalog fast path (spec §6 step 3): start the draft 80% done.
+        listing.part_id = part.id
+        listing.title = (part.title_template or "")[:80] or None
+        listing.description = part.description_template
+        listing.category_id = part.default_category_id
+        listing.item_specifics = part.item_specifics
     db.add(listing)
     await db.commit()
     await db.refresh(listing)

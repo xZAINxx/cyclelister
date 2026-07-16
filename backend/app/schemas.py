@@ -14,6 +14,8 @@ ConditionGrade = Literal["new_nos", "new_other", "used", "for_parts"]
 
 class CreateListingIn(BaseModel):
     hint: str | None = Field(default=None, max_length=200)
+    # Catalog flow: start a draft prefilled from a known part (templates, category).
+    part_id: uuid.UUID | None = None
 
 
 class PatchListingIn(BaseModel):

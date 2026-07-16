@@ -76,7 +76,11 @@ export async function apiFetch(path, options = {}) {
 export const api = {
   health: () => apiFetch('/health'),
 
-  createListing: (hint) => apiFetch('/listings', { method: 'POST', body: hint ? { hint } : {} }),
+  createListing: (hint, partId) =>
+    apiFetch('/listings', {
+      method: 'POST',
+      body: { ...(hint ? { hint } : {}), ...(partId ? { part_id: partId } : {}) },
+    }),
   getListings: (status) =>
     apiFetch(`/listings${status && status !== 'all' ? `?status=${encodeURIComponent(status)}` : ''}`),
   getListing: (id) => apiFetch(`/listings/${id}`),
@@ -93,7 +97,9 @@ export const api = {
   getJob: (jobId) => apiFetch(`/jobs/${jobId}`),
   publish: (id) => apiFetch(`/listings/${id}/publish`, { method: 'POST' }),
 
-  searchParts: (q) => apiFetch(`/parts?q=${encodeURIComponent(q || '')}`),
+  searchParts: (q, brand) =>
+    apiFetch(`/parts?q=${encodeURIComponent(q || '')}&brand=${encodeURIComponent(brand || '')}`),
+  partsFacets: () => apiFetch('/parts/facets'),
   saveFitment: (partId, fitments) =>
     apiFetch(`/parts/${partId}/fitment`, { method: 'PUT', body: { fitments } }),
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Save, UploadCloud, AlertTriangle, ShieldCheck, X } from 'lucide-react'
+import { ArrowLeft, ImagePlus, Save, UploadCloud, AlertTriangle, ShieldCheck, X } from 'lucide-react'
 import { api, ApiError, imageSrc } from '../api'
 import { useToast } from '../components/Toast'
 import StatusBadge from '../components/StatusBadge'
@@ -137,12 +137,13 @@ export default function ReviewScreen() {
         const l = await api.getListing(id)
         if (!alive) return
         setListing(l)
-        if (l.status !== 'draft') {
-          // Already terminal (arrived from Drafts) — render immediately.
+        if (l.status !== 'draft' || !jobId) {
+          // Terminal status, or a draft with no running pipeline (catalog /
+          // relist flow) — render the editable form immediately.
           return settle(l)
         }
         setPhase('processing')
-        schedule(jobId ? pollJob : pollListing)
+        schedule(pollJob)
       } catch (err) {
         if (!alive) return
         setPageError(err instanceof ApiError ? err.detail : 'Failed to load listing.')
@@ -289,25 +290,49 @@ export default function ReviewScreen() {
         </div>
       )}
 
-      {/* Image gallery */}
-      {images.length > 0 && (
-        <div className="gallery">
-          {images
-            .slice()
-            .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
-            .map((img) => (
-              <button
-                key={img.id}
-                className={`gallery-thumb ${img.is_primary ? 'is-primary' : ''}`}
-                onClick={() => setLightbox(imageSrc(img.id))}
-                type="button"
-              >
-                <img src={imageSrc(img.id)} alt="" loading="lazy" />
-                {img.is_primary && <span className="primary-badge">Primary</span>}
-              </button>
-            ))}
-        </div>
-      )}
+      {/* Image gallery (+ add photos — catalog/relist drafts start with none) */}
+      <div className="gallery">
+        {images
+          .slice()
+          .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+          .map((img) => (
+            <button
+              key={img.id}
+              className={`gallery-thumb ${img.is_primary ? 'is-primary' : ''}`}
+              onClick={() => setLightbox(imageSrc(img.id))}
+              type="button"
+            >
+              <img src={imageSrc(img.id)} alt="" loading="lazy" />
+              {img.is_primary && <span className="primary-badge">Primary</span>}
+            </button>
+          ))}
+        {images.length < 8 && !isListed && (
+          <label className="gallery-thumb gallery-add">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={async (e) => {
+                const files = Array.from(e.target.files || []).slice(0, 8 - images.length)
+                e.target.value = ''
+                for (const file of files) {
+                  try {
+                    await api.uploadImage(id, file)
+                  } catch (err) {
+                    toast.error(err instanceof ApiError ? err.detail : 'Upload failed.')
+                  }
+                }
+                try {
+                  setListing(await api.getListing(id))
+                } catch { /* keep current view */ }
+              }}
+            />
+            <ImagePlus size={20} />
+            <span>Add</span>
+          </label>
+        )}
+      </div>
 
       {/* Core fields */}
       <section className="section">

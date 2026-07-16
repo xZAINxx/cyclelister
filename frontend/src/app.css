@@ -395,10 +395,29 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--y
 .mono { font-family: var(--font-mono); font-size: 13px; }
 .table-scroll { overflow-x: auto; }
 
+/* ---------- catalog ---------- */
+.search-field input { font-family: var(--font-mono); }
+.chip-count { opacity: 0.65; font-size: 11px; margin-left: 3px; }
+.fit-chip {
+  display: inline-block; margin: 1px 4px 1px 0; padding: 1px 6px;
+  background: var(--card-2); border: 1px solid var(--line); border-radius: 3px;
+  font-size: 11.5px; white-space: nowrap;
+}
+.catalog-table td { font-size: 13.5px; }
+.gallery-add {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; color: var(--smoke); border-style: dashed; cursor: pointer;
+  font-family: var(--font-chrome); font-weight: 700; font-size: 11px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.gallery-add:hover { color: var(--yellow); border-color: var(--yellow); }
+
 /* ---------- responsive ---------- */
 @media (min-width: 900px) {
   .app-main { padding-top: 22px; }
-  .tab-bar { position: sticky; bottom: auto; top: 53px; justify-content: flex-start; gap: 4px; padding: 0 16px; background: var(--ink); border-bottom: 1px solid var(--line); border-top: none; }
+  /* order the rail between header and content (DOM keeps tab-bar last for mobile) */
+  .app-header { order: -2; }
+  .tab-bar { order: -1; position: sticky; bottom: auto; top: 53px; justify-content: flex-start; gap: 4px; padding: 0 16px; background: var(--ink); border-bottom: 1px solid var(--line); border-top: none; }
   .tab { flex-direction: row; gap: 8px; padding: 12px 18px; border-top: none; border-bottom: 2px solid transparent; }
   .tab-active { border-bottom-color: var(--yellow); }
   .action-bar { bottom: 0; }
