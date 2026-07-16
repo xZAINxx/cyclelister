@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ImagePlus, RotateCw, Save, UploadCloud, AlertTriangle, ShieldCheck, X } from 'lucide-react'
+import { ArrowLeft, ImagePlus, RotateCw, Save, Tag, UploadCloud, AlertTriangle, ShieldCheck, X } from 'lucide-react'
 import { api, ApiError, imageSrc } from '../api'
 import { useToast } from '../components/Toast'
 import StatusBadge from '../components/StatusBadge'
@@ -465,6 +465,24 @@ export default function ReviewScreen() {
 
       {/* Sticky action bar */}
       <div className="action-bar">
+        {isListed && (
+          <button
+            className="btn-secondary"
+            type="button"
+            onClick={async () => {
+              if (!window.confirm('Mark this listing as sold and archive it to history?')) return
+              try {
+                const updated = await api.markSold(id, listing?.price ?? null)
+                setListing(updated)
+                toast.success('Sold — archived to history. Relist it anytime from the Sold tab.')
+              } catch (err) {
+                toast.error(err instanceof ApiError ? err.detail : 'Could not mark sold.')
+              }
+            }}
+          >
+            <Tag size={16} /> Mark sold
+          </button>
+        )}
         <button className="btn-secondary" onClick={save} disabled={saving} type="button">
           <Save size={16} /> {saving ? 'Saving…' : 'Save'}
         </button>

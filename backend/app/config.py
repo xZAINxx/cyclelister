@@ -55,6 +55,7 @@ class Settings(BaseSettings):
 
     # Jobs
     max_concurrent_jobs: int = 3
+    order_poll_minutes: int = 15  # sale-detection cadence (spec §10)
 
     # CORS (comma-separated origins; dev Vite server by default)
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"

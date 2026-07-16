@@ -148,6 +148,21 @@ async def ebay_oauth_url(user: User = Depends(current_user)):
         raise HTTPException(status_code=503, detail=str(err))
 
 
+@ebay_router.post("/sync-orders")
+async def sync_orders(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """Manual order-poll trigger (the scheduler runs this automatically when connected)."""
+    from app.services.ebay import EbayNotConnectedError
+    from app.services.sales import sync_ebay_orders
+
+    try:
+        return await sync_ebay_orders(db)
+    except (EbayNotConfiguredError, EbayNotConnectedError) as err:
+        raise HTTPException(status_code=503, detail=str(err))
+
+
 @ebay_router.get("/oauth/callback")
 async def ebay_oauth_callback(code: str, db: AsyncSession = Depends(get_db)):
     client = EbayClient()

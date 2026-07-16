@@ -11,6 +11,7 @@ from app.config import REPO_ROOT, get_settings
 from app.db.models import Base
 from app.db.session import get_engine
 from app.routes.analytics import router as analytics_router
+from app.routes.history import router as history_router
 from app.routes.listings import router as listings_router
 from app.routes.misc import (
     ebay_router,
@@ -25,12 +26,42 @@ logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import asyncio
+
     settings = get_settings()
     if settings.is_dev:
         # Dev convenience; production schema is managed by Alembic (alembic upgrade head).
         async with get_engine().begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+
+    poller: asyncio.Task | None = None
+    if settings.app_env != "test" and settings.ebay_client_id:
+        poller = asyncio.create_task(_order_poll_loop(settings.order_poll_minutes))
     yield
+    if poller:
+        poller.cancel()
+
+
+async def _order_poll_loop(minutes: int) -> None:
+    """Sale detection (spec §10): poll the Fulfillment API on a schedule."""
+    import asyncio
+    import logging
+
+    from app.db.session import get_session_factory
+    from app.services.ebay import EbayClient
+    from app.services.sales import sync_ebay_orders
+
+    log = logging.getLogger("order-poller")
+    while True:
+        await asyncio.sleep(minutes * 60)
+        try:
+            async with get_session_factory()() as db:
+                if await EbayClient().connected(db):
+                    result = await sync_ebay_orders(db)
+                    if result["sales_archived"]:
+                        log.info("archived %s sale(s)", result["sales_archived"])
+        except Exception:  # never let the poller die (spec §15 resilience)
+            log.exception("order poll failed")
 
 
 def create_app() -> FastAPI:
@@ -43,7 +74,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    for router in (health_router, listings_router, jobs_router, parts_router, images_router, ebay_router, analytics_router):
+    for router in (health_router, listings_router, jobs_router, parts_router, images_router, ebay_router, analytics_router, history_router):
         app.include_router(router, prefix="/api")
 
     dist = Path(REPO_ROOT) / "frontend" / "dist"

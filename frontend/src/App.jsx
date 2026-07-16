@@ -8,6 +8,7 @@ import CatalogScreen from './screens/CatalogScreen'
 import DashboardScreen from './screens/DashboardScreen'
 import DraftsScreen from './screens/DraftsScreen'
 import ReviewScreen from './screens/ReviewScreen'
+import SoldScreen from './screens/SoldScreen'
 
 export default function App() {
   // When auth isn't configured we skip the gate entirely (dev mode).
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="/drafts" element={<DraftsScreen />} />
         <Route path="/dashboard" element={<DashboardScreen />} />
         <Route path="/catalog" element={<CatalogScreen />} />
+        <Route path="/sold" element={<SoldScreen />} />
         <Route path="/review/:id" element={<ReviewScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

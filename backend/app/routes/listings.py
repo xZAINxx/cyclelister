@@ -172,6 +172,25 @@ async def reprice_listing(
     return ListingOut.from_model(listing)
 
 
+@router.post("/{listing_id}/mark-sold", response_model=ListingOut)
+async def mark_sold(
+    listing_id: uuid.UUID,
+    body: dict | None = None,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """Manual sale archival — fallback until eBay order polling is connected."""
+    from app.services.sales import archive_sale
+
+    listing = await _get_listing(db, listing_id)
+    if listing.status not in ("listed", "pending_review"):
+        raise HTTPException(status_code=409, detail="Only live or reviewed listings can be marked sold")
+    sold_price = (body or {}).get("sold_price")
+    await archive_sale(db, listing, sold_price=sold_price)
+    await db.refresh(listing)
+    return ListingOut.from_model(listing)
+
+
 @router.post("/{listing_id}/publish", response_model=ListingOut)
 async def publish_listing(
     listing_id: uuid.UUID,

@@ -155,7 +155,7 @@ async def summary(
                 {"week": w, "count": sales_by_week_count.get(w, 0), "revenue": round(sales_by_week_rev.get(w, 0), 2)}
                 for w in weeks
             ],
-            "connected": False,  # flips with Phase 3 sale detection
+            "connected": len(prices) > 0,  # true once sales exist (Phase 3 archival)
         },
         "ai": {
             "tokens_input": tokens_in,
