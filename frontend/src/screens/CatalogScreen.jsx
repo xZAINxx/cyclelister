@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, PlusCircle, AlertTriangle } from 'lucide-react'
 import { api, ApiError } from '../api'
+import BarcodeScanButton from '../components/BarcodeScanButton'
 import { useToast } from '../components/Toast'
 
 // Modern take on MotoLister's part-picker grid: the seller's own growing
@@ -87,12 +88,15 @@ export default function CatalogScreen() {
       </div>
 
       <label className="field search-field">
-        <span className="field-label-row"><span><Search size={12} /> Search part number, type, or title</span></span>
+        <span className="field-label-row">
+          <span><Search size={12} /> Search part number, type, or title</span>
+          <BarcodeScanButton onScan={setQ} />
+        </span>
         <input
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="e.g. 90480-01401, carburetor, XS650"
+          placeholder="e.g. 90480-01401, carburetor, XS650 — or scan a barcode"
         />
       </label>
 

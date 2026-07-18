@@ -421,6 +421,10 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--y
 }
 .price-explain-text { flex: 1; }
 
+/* ---------- barcode scan ---------- */
+.scan-modal { width: min(480px, 100%); }
+.scan-video { width: 100%; border-radius: var(--radius); background: #000; margin: 8px 0; }
+
 /* ---------- responsive ---------- */
 @media (min-width: 900px) {
   .app-main { padding-top: 22px; }

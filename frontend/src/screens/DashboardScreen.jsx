@@ -58,18 +58,21 @@ export default function DashboardScreen() {
   const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [queue, setQueue] = useState([])
+  const [actions, setActions] = useState([])
   const [error, setError] = useState(null)
   const [loadedAt, setLoadedAt] = useState(null)
 
   const load = async () => {
     setError(null)
     try {
-      const [summary, listings] = await Promise.all([
+      const [summary, listings, attention] = await Promise.all([
         api.analyticsSummary(),
         api.getListings('pending_review'),
+        api.attentionListings(),
       ])
       setData(summary)
       setQueue(listings.items.slice(0, 8))
+      setActions(attention.items.slice(0, 8))
       setLoadedAt(new Date())
     } catch (err) {
       setError(err instanceof ApiError ? err.detail : 'Failed to load analytics.')
@@ -169,6 +172,46 @@ export default function DashboardScreen() {
           )}
         </div>
       </div>
+
+      {actions.length > 0 && (
+        <div className="chart-card queue-card">
+          <div className="chart-title">
+            <h3>Action list — stale &amp; out of stock</h3>
+            <span className="chart-legend">{actions.length} shown</span>
+          </div>
+          <div className="table-scroll">
+            <table className="queue-table">
+              <thead>
+                <tr><th>Listing</th><th>Shelf</th><th>Qty</th><th>Listed since</th><th></th></tr>
+              </thead>
+              <tbody>
+                {actions.map((l) => (
+                  <tr key={l.id} onClick={() => navigate(`/review/${l.id}`)}>
+                    <td className="queue-title-cell">{l.title || '(untitled)'}</td>
+                    <td className="mono">{l.stock_location || '—'}</td>
+                    <td className="mono">{l.quantity}</td>
+                    <td className="card-date">{new Date(l.created_at).toLocaleDateString()}</td>
+                    <td>
+                      <button
+                        className="btn-secondary btn-sm"
+                        onClick={async (e) => {
+                          e.stopPropagation()
+                          try {
+                            await api.reprice(l.id)
+                            load()
+                          } catch { /* surfaced on review screen */ }
+                        }}
+                      >
+                        Reprice
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="chart-card queue-card">
         <div className="chart-title"><h3>Review queue</h3><span className="chart-legend">{queue.length} shown</span></div>

@@ -69,12 +69,23 @@ async def create_listing(
 @router.get("", response_model=ListingListOut)
 async def list_listings(
     status: str | None = None,
+    attention: bool = False,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_user),
 ):
     query = select(Listing).order_by(Listing.created_at.desc()).limit(200)
     if status:
         query = query.where(Listing.status == status)
+    if attention:
+        # Inventory action list (spec §12): stale live listings + zero stock.
+        from datetime import datetime, timedelta, timezone
+
+        from sqlalchemy import or_
+
+        cutoff = datetime.now(timezone.utc) - timedelta(days=90)
+        query = query.where(Listing.status == "listed").where(
+            or_(Listing.created_at < cutoff, Listing.quantity <= 0)
+        )
     listings = (await db.execute(query)).scalars().all()
     return ListingListOut(items=[ListingOut.from_model(l) for l in listings])
 

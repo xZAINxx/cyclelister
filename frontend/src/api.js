@@ -107,6 +107,7 @@ export const api = {
   analyticsSummary: () => apiFetch('/analytics/summary'),
   reprice: (id) => apiFetch(`/listings/${id}/price`, { method: 'POST' }),
   history: (q) => apiFetch(`/history?q=${encodeURIComponent(q || '')}`),
+  attentionListings: () => apiFetch('/listings?attention=true'),
   relist: (historyId) => apiFetch(`/history/${historyId}/relist`, { method: 'POST' }),
   markSold: (id, soldPrice) =>
     apiFetch(`/listings/${id}/mark-sold`, {

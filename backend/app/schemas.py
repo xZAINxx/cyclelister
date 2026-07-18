@@ -26,6 +26,7 @@ class PatchListingIn(BaseModel):
     condition: ConditionGrade | None = None
     condition_notes: str | None = None
     category_id: str | None = None
+    stock_location: str | None = Field(default=None, max_length=60)
     item_specifics: dict[str, str] | None = None
 
 
@@ -88,6 +89,7 @@ class ListingOut(BaseModel):
     undercut_pct: float | None = None
     price_source: str | None = None
     price_explanation: str | None = None
+    stock_location: str | None = None
     quantity: int
     category_id: str | None
     item_specifics: dict | None
@@ -120,6 +122,7 @@ class ListingOut(BaseModel):
             undercut_pct=float(listing.undercut_pct) if listing.undercut_pct is not None else None,
             price_source=listing.price_source,
             price_explanation=listing.price_explanation,
+            stock_location=listing.stock_location,
             quantity=listing.quantity,
             category_id=listing.category_id,
             item_specifics=listing.item_specifics,

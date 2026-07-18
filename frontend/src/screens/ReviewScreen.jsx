@@ -59,6 +59,7 @@ export default function ReviewScreen() {
     condition: '',
     condition_notes: '',
     category_id: '',
+    stock_location: '',
   })
   const [specificRows, setSpecificRows] = useState([])
 
@@ -81,6 +82,7 @@ export default function ReviewScreen() {
       condition: l.condition || '',
       condition_notes: l.condition_notes || '',
       category_id: l.category_id || '',
+      stock_location: l.stock_location || '',
     })
     setSpecificRows(specificsToRows(l.item_specifics))
     hydratedRef.current = true
@@ -174,6 +176,7 @@ export default function ReviewScreen() {
         condition: form.condition || null,
         condition_notes: form.condition_notes,
         category_id: form.category_id,
+        stock_location: form.stock_location || null,
         item_specifics: rowsToSpecifics(specificRows),
       }
       const updated = await api.patchListing(id, patch)
@@ -448,6 +451,17 @@ export default function ReviewScreen() {
             value={form.condition_notes}
             onChange={(e) => setField('condition_notes', e.target.value)}
             placeholder="e.g. New Old Stock, minor shelf wear on box"
+          />
+        </label>
+
+        <label className="field">
+          <span>Stock location (shelf / bin)</span>
+          <input
+            type="text"
+            value={form.stock_location}
+            onChange={(e) => setField('stock_location', e.target.value)}
+            placeholder="e.g. A3-14"
+            maxLength={60}
           />
         </label>
       </section>
