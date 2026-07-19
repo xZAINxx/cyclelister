@@ -28,8 +28,12 @@ cd backend
 # expected: 454 new parts, 213 fitment rows; re-runs update instead of duplicating
 ```
 
-## Auth
+## Auth (going live)
 
-For end-user sign-in the frontend needs `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`
-(frontend/.env) and the backend needs token verification — wired in the redesign pass.
-Until then the backend runs in dev-bypass mode (no `SUPABASE_JWT_SECRET` set).
+1. Frontend: put `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` in `frontend/.env`
+   and rebuild — the sign-in gate activates (create the seller's account via its
+   sign-up form, then disable public sign-ups in the Supabase dashboard).
+2. Backend: set `AUTH_REQUIRED=true`. No JWT secret needed — tokens are verified
+   against the project's public JWKS (`SUPABASE_URL` is already configured).
+   Setting `SUPABASE_JWT_SECRET` instead selects legacy HS256 verification.
+3. Local dev stays friction-free: `AUTH_REQUIRED` defaults to false (dev user).

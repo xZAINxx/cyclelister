@@ -26,7 +26,8 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://cyclelister:cyclelister@127.0.0.1:5533/cyclelister"
     )
 
-    # Supabase auth
+    # Supabase auth — flip auth_required on for any non-local deployment.
+    auth_required: bool = False
     supabase_url: str = ""
     supabase_anon_key: str = ""
     supabase_service_role_key: str = ""
