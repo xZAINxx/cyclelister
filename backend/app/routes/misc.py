@@ -163,6 +163,35 @@ async def sync_orders(
         raise HTTPException(status_code=503, detail=str(err))
 
 
+digest_router = APIRouter(prefix="/digest", tags=["digest"])
+
+
+@digest_router.get("/preview")
+async def digest_preview(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    """Rendered weekly digest HTML — works before any SMTP is configured."""
+    from app.services.digest import build_weekly_digest, render_digest_html
+
+    digest = await build_weekly_digest(db)
+    return Response(content=render_digest_html(digest), media_type="text/html")
+
+
+@digest_router.post("/send")
+async def digest_send(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    from app.services.digest import DigestNotConfiguredError, send_digest
+
+    try:
+        digest = await send_digest(db)
+    except DigestNotConfiguredError as err:
+        raise HTTPException(status_code=503, detail=str(err))
+    return {"sent": True, "week": digest.week_start}
+
+
 @ebay_router.get("/oauth/callback")
 async def ebay_oauth_callback(code: str, db: AsyncSession = Depends(get_db)):
     client = EbayClient()

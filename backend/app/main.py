@@ -14,6 +14,7 @@ from app.routes.analytics import router as analytics_router
 from app.routes.history import router as history_router
 from app.routes.listings import router as listings_router
 from app.routes.misc import (
+    digest_router,
     ebay_router,
     health_router,
     images_router,
@@ -34,12 +35,35 @@ async def lifespan(app: FastAPI):
         async with get_engine().begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
-    poller: asyncio.Task | None = None
-    if settings.app_env != "test" and settings.ebay_client_id:
-        poller = asyncio.create_task(_order_poll_loop(settings.order_poll_minutes))
+    tasks: list[asyncio.Task] = []
+    if settings.app_env != "test":
+        if settings.ebay_client_id:
+            tasks.append(asyncio.create_task(_order_poll_loop(settings.order_poll_minutes)))
+        if settings.smtp_host and settings.digest_to:
+            tasks.append(asyncio.create_task(_digest_loop()))
     yield
-    if poller:
-        poller.cancel()
+    for task in tasks:
+        task.cancel()
+
+
+async def _digest_loop() -> None:
+    """Weekly summary email (spec §13): checks hourly, sends Monday mornings."""
+    import asyncio
+    import logging
+
+    from app.db.session import get_session_factory
+    from app.services.digest import digest_due, send_digest
+
+    log = logging.getLogger("digest")
+    while True:
+        await asyncio.sleep(3600)
+        try:
+            async with get_session_factory()() as db:
+                if await digest_due(db):
+                    digest = await send_digest(db)
+                    log.info("weekly digest sent (week of %s)", digest.week_start)
+        except Exception:
+            log.exception("digest loop failed")
 
 
 async def _order_poll_loop(minutes: int) -> None:
@@ -74,7 +98,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    for router in (health_router, listings_router, jobs_router, parts_router, images_router, ebay_router, analytics_router, history_router):
+    for router in (health_router, listings_router, jobs_router, parts_router, images_router, ebay_router, analytics_router, history_router, digest_router):
         app.include_router(router, prefix="/api")
 
     dist = Path(REPO_ROOT) / "frontend" / "dist"
